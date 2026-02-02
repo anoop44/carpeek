@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: carpeek_postgres
+    restart: always
+    env_file:
+      - .env.${ENV:-local}
+    environment:
+      POSTGRES_DB: carpeek_db
+      POSTGRES_USER: carpeek_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: carpeek_backend
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.${ENV:-local}
+    environment:
+      DATABASE_URL: postgres://carpeek_user:${DB_PASSWORD:-password}@postgres:5432/carpeek_db?sslmode=disable
+      PORT: ${PORT}
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend/migrations:/app/migrations
+      - ./images:/app/images  # Volume for storing car images
+
+volumes:
+  postgres_data:

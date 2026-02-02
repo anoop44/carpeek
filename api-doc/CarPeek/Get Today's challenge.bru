@@ -1,0 +1,16 @@
+meta {
+  name: Get Today's challenge
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/v1/challenge/today
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
