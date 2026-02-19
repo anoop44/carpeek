@@ -1,11 +1,14 @@
 package handlers
 
 import (
-	"carpeek-backend/database"
-	"carpeek-backend/models"
+	"autocorrect-backend/database"
+	"autocorrect-backend/models"
+	"autocorrect-backend/utils"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
@@ -15,7 +18,8 @@ import (
 func SubmitChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	db := database.DB
 	if db == nil {
-		http.Error(w, "Database connection not available", http.StatusInternalServerError)
+		utils.LogError("SubmitChallengeHandler", fmt.Errorf("database connection not available"))
+		jsonError(w, "Database connection not available", http.StatusInternalServerError)
 		return
 	}
 
@@ -23,13 +27,17 @@ func SubmitChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.SubmissionRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		utils.LogError("DecodeSubmissionRequest", err)
+		jsonError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
+	// Log the incoming request for debugging
+	utils.LogDebug("SUBMISSION", "Request body", req)
+
 	// Validate required fields
 	if req.MakeID <= 0 || req.ModelID <= 0 {
-		http.Error(w, "Both make_id and model_id are required", http.StatusBadRequest)
+		jsonError(w, "Both make_id and model_id are required", http.StatusBadRequest)
 		return
 	}
 
@@ -39,41 +47,46 @@ func SubmitChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	// Get user identity
 	user, err := GetUserFromRequest(w, r, sqlxDB)
 	if err != nil {
-		http.Error(w, "Failed to identify user", http.StatusInternalServerError)
+		utils.LogError("GetUserFromRequestInSubmission", err)
+		jsonError(w, "Failed to identify user", http.StatusInternalServerError)
 		return
 	}
 
 	// Get the challenge
 	challenge, err := database.GetChallengeByID(sqlxDB, req.ChallengeID)
 	if err != nil {
-		http.Error(w, "Challenge not found", http.StatusNotFound)
+		utils.LogError("GetChallengeByID", err)
+		jsonError(w, "Challenge not found", http.StatusNotFound)
 		return
 	}
 
 	// Check current status
 	status, err := database.GetUserChallengeStatus(sqlxDB, user.ID, challenge.ID)
 	if err != nil {
-		http.Error(w, "Failed to get user status", http.StatusInternalServerError)
+		utils.LogError("GetUserChallengeStatusSubmission", err)
+		jsonError(w, "Failed to get user status", http.StatusInternalServerError)
 		return
 	}
 
 	if status.IsCompleted {
-		http.Error(w, "Challenge already completed or max attempts reached", http.StatusForbidden)
+		jsonError(w, "Challenge already completed or max attempts reached", http.StatusForbidden)
 		return
 	}
 
 	// Validate the submission
 	result, err := database.ValidateSubmission(sqlxDB, challenge.ID, req.MakeID, req.ModelID)
 	if err != nil {
-		http.Error(w, "Failed to validate submission", http.StatusInternalServerError)
+		utils.LogError("ValidateSubmission", err)
+		jsonError(w, "Failed to validate submission", http.StatusInternalServerError)
 		return
 	}
 
-	// Record the submission
-	err = database.RecordSubmission(sqlxDB, user.ID, challenge.ID, req.MakeID, req.ModelID, result.Correct)
+	points, err := database.RecordSubmission(sqlxDB, user.ID, challenge.ID, req.MakeID, req.ModelID, result.IsMakeCorrect, result.IsModelCorrect, result.Correct)
 	if err != nil {
-		// Log error but continue
+		utils.LogError("RecordSubmission", err)
+		// Continue even if recording fails, but we've logged it
 	}
+	result.PointsEarned = points
 
 	// Update user status for the response
 	updatedStatus, err := database.GetUserChallengeStatus(sqlxDB, user.ID, challenge.ID)
@@ -81,8 +94,43 @@ func SubmitChallengeHandler(w http.ResponseWriter, r *http.Request) {
 		result.UserStatus = updatedStatus
 	}
 
-	// Ensure the image URL is a full URL
-	result.ImageURL = GetFullImageURL(result.ImageURL)
+	// If the challenge was solved correctly, include bonus round info
+	if result.Correct {
+		bonusInfo, err := database.GetBonusRoundInfo(sqlxDB, challenge.ID, user.ID)
+		if err == nil {
+			// Only include if at least one bonus type is enabled
+			if bonusInfo.YearRangeEnabled || bonusInfo.GenerationEnabled || bonusInfo.CodenameEnabled {
+				result.BonusRound = bonusInfo
+			}
+		}
+	}
+
+	// Calculate seconds until next challenge
+	timezone := r.Header.Get("X-Timezone")
+	if timezone == "" {
+		timezone = "UTC"
+	}
+	// Record activity
+	now := time.Now().In(time.UTC)
+	if timezone != "UTC" {
+		loc, err := time.LoadLocation(timezone)
+		if err == nil {
+			now = time.Now().In(loc)
+		}
+	}
+	database.UpdateUserActivity(sqlxDB, user.ID, now, "submission")
+	result.StreakStats, _ = database.GetUserActivityStats(sqlxDB, user.ID, now)
+
+	result.NextChallengeSeconds = GetSecondsUntilNextChallenge(timezone)
+
+	// Log the submission event
+	utils.LogEvent("SUBMISSION", "User submitted guess", map[string]interface{}{
+		"userID":      user.ID,
+		"challengeID": challenge.ID,
+		"correct":      result.Correct,
+		"points":       result.PointsEarned,
+		"nextIn":       result.NextChallengeSeconds,
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
@@ -92,7 +140,7 @@ func SubmitChallengeHandler(w http.ResponseWriter, r *http.Request) {
 func GetChallengeByIDHandler(w http.ResponseWriter, r *http.Request) {
 	db := database.DB
 	if db == nil {
-		http.Error(w, "Database connection not available", http.StatusInternalServerError)
+		jsonError(w, "Database connection not available", http.StatusInternalServerError)
 		return
 	}
 
@@ -101,7 +149,7 @@ func GetChallengeByIDHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid challenge ID", http.StatusBadRequest)
+		jsonError(w, "Invalid challenge ID", http.StatusBadRequest)
 		return
 	}
 
@@ -111,7 +159,7 @@ func GetChallengeByIDHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the challenge by ID
 	challenge, err := database.GetChallengeByID(sqlxDB, id)
 	if err != nil {
-		http.Error(w, "Challenge not found", http.StatusNotFound)
+		jsonError(w, "Challenge not found", http.StatusNotFound)
 		return
 	}
 

@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"carpeek-backend/database"
-	"carpeek-backend/models"
+	"autocorrect-backend/database"
+	"autocorrect-backend/models"
+	"autocorrect-backend/utils"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -26,7 +27,7 @@ const maxCacheSize = 3
 func getLocalizedDate(timezone string) string {
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
-		log.Printf("Invalid timezone %s, defaulting to UTC: %v", timezone, err)
+		utils.LogEvent("CACHE", "Invalid timezone, defaulting to UTC", timezone)
 		loc = time.UTC
 	}
 	return time.Now().In(loc).Format("2006-01-02")
@@ -37,12 +38,12 @@ func getChallengeFromCacheOrDB(sqlxDB *sqlx.DB, date string) (*models.DetailedCh
 	cacheMutex.RLock()
 	if challenge, ok := challengeCache[date]; ok {
 		cacheMutex.RUnlock()
-		log.Printf("Cache hit for date: %s", date)
+		utils.LogEvent("CACHE", "Hit for date", date)
 		return challenge, nil
 	}
 	cacheMutex.RUnlock()
 
-	log.Printf("Cache miss for date: %s, fetching from DB", date)
+	utils.LogEvent("CACHE", "Miss for date, fetching from DB", date)
 	challenge, err := database.GetDetailedTodaysChallenge(sqlxDB, date)
 	if err != nil {
 		return nil, err
@@ -62,12 +63,12 @@ func getChallengeFromCacheOrDB(sqlxDB *sqlx.DB, date string) (*models.DetailedCh
 		oldestDate := cacheDates[0]
 		delete(challengeCache, oldestDate)
 		cacheDates = cacheDates[1:]
-		log.Printf("Evicted %s from cache", oldestDate)
+		utils.LogEvent("CACHE", "Evicted from cache", oldestDate)
 	}
 
 	challengeCache[date] = challenge
 	cacheDates = append(cacheDates, date)
-	log.Printf("Added %s to cache", date)
+	utils.LogEvent("CACHE", "Added to cache", date)
 
 	return challenge, nil
 }
@@ -80,11 +81,10 @@ func GetTodaysChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	date := getLocalizedDate(timezone)
 
-	log.Printf("GET /api/v1/challenge/today: starting fetch for date %s (TZ: %s)", date, timezone)
 	db := database.DB
 	if db == nil {
-		log.Printf("GET /api/v1/challenge/today: database connection not available")
-		http.Error(w, "Database connection not available", http.StatusInternalServerError)
+		utils.LogError("GetTodaysChallengeHandler", fmt.Errorf("database connection not available"))
+		jsonError(w, "Database connection not available", http.StatusInternalServerError)
 		return
 	}
 
@@ -94,7 +94,7 @@ func GetTodaysChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	// Get challenge from cache or DB
 	cachedChallenge, err := getChallengeFromCacheOrDB(sqlxDB, date)
 	if err != nil {
-		log.Printf("GET /api/v1/challenge/today: challenge not found for date %s: %v", date, err)
+		utils.LogError("GetTodaysChallenge", err)
 		// If no challenge exists for date, return a default response
 		defaultChallenge := models.ChallengeResponse{
 			ID:       0,
@@ -107,18 +107,53 @@ func GetTodaysChallengeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Format a minimal response
-	response := models.ChallengeResponse{
-		ID:       cachedChallenge.ID,
-		ImageURL: GetFullImageURL(cachedChallenge.ImageURL),
+	// Get user identity
+	user, err := GetUserFromRequest(w, r, sqlxDB)
+	var streakStats *models.UserActivityStats
+	var userStatus *models.UserChallengeStatus
+
+	if err == nil && user != nil {
+		// Update participation bitmap
+		now := time.Now().In(time.UTC)
+		if timezone != "UTC" {
+			loc, err := time.LoadLocation(timezone)
+			if err == nil {
+				now = time.Now().In(loc)
+			}
+		}
+
+		database.UpdateUserActivity(sqlxDB, user.ID, now, "participation")
+
+		// Get streak stats
+		streakStats, _ = database.GetUserActivityStats(sqlxDB, user.ID, now)
+
+		// Get user challenge status
+		status, err := database.GetUserChallengeStatus(sqlxDB, user.ID, cachedChallenge.ID)
+		if err == nil {
+			userStatus = status
+		}
 	}
 
-	log.Printf("GET /api/v1/challenge/today: returning minimal response for challenge ID %d", response.ID)
+	// Format a detailed response
+	response := models.DetailedChallengeResponse{
+		ID:                   cachedChallenge.ID,
+		Date:                 cachedChallenge.Date,
+		ImageURL:             GetFullImageURL(cachedChallenge.ImageURL),
+		NextChallengeSeconds: GetSecondsUntilNextChallenge(timezone),
+		StreakStats:          streakStats,
+		UserStatus:           userStatus,
+	}
+
+	// If the user has completed the challenge, expose the solution
+	if userStatus != nil && userStatus.IsCompleted {
+		response.Make = cachedChallenge.Make
+		response.Model = cachedChallenge.Model
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("GET /api/v1/challenge/today: failed to encode response: %v", err)
+		utils.LogError("EncodeChallengeResponse", err)
 	}
 }
 
@@ -128,14 +163,16 @@ func GetTodaysChallengeHandler(w http.ResponseWriter, r *http.Request) {
 func GetMakesHandler(w http.ResponseWriter, r *http.Request) {
 	db := database.DB
 	if db == nil {
-		http.Error(w, "Database connection not available", http.StatusInternalServerError)
+		utils.LogError("GetMakesHandler", fmt.Errorf("database connection not available"))
+		jsonError(w, "Database connection not available", http.StatusInternalServerError)
 		return
 	}
 
 	sqlxDB := sqlx.NewDb(db, "postgres")
 	makes, err := database.GetAllMakes(sqlxDB)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		utils.LogError("GetAllMakes", err)
+		jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -148,31 +185,65 @@ func GetMakesHandler(w http.ResponseWriter, r *http.Request) {
 func GetModelsByMakeHandler(w http.ResponseWriter, r *http.Request) {
 	db := database.DB
 	if db == nil {
-		http.Error(w, "Database connection not available", http.StatusInternalServerError)
+		utils.LogError("GetModelsByMakeHandler", fmt.Errorf("database connection not available"))
+		jsonError(w, "Database connection not available", http.StatusInternalServerError)
 		return
 	}
 
 	makeIDStr := r.URL.Query().Get("make_id")
 	if makeIDStr == "" {
-		http.Error(w, "make_id query parameter is required", http.StatusBadRequest)
+		jsonError(w, "make_id query parameter is required", http.StatusBadRequest)
 		return
 	}
 
 	var makeID int
 	_, err := fmt.Sscanf(makeIDStr, "%d", &makeID)
 	if err != nil {
-		http.Error(w, "invalid make_id", http.StatusBadRequest)
+		jsonError(w, "invalid make_id", http.StatusBadRequest)
 		return
 	}
 
 	sqlxDB := sqlx.NewDb(db, "postgres")
 	models, err := database.GetModelsByMakeID(sqlxDB, makeID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		utils.LogError("GetModelsByMakeID", err)
+		jsonError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(models)
+}
+
+// GetChallengeStatsHandler returns global stats for a specific challenge
+func GetChallengeStatsHandler(w http.ResponseWriter, r *http.Request) {
+	challengeIDStr := r.URL.Query().Get("challenge_id")
+	if challengeIDStr == "" {
+		jsonError(w, "challenge_id is required", http.StatusBadRequest)
+		return
+	}
+
+	challengeID, err := strconv.Atoi(challengeIDStr)
+	if err != nil {
+		jsonError(w, "invalid challenge_id", http.StatusBadRequest)
+		return
+	}
+
+	db := database.DB
+	if db == nil {
+		jsonError(w, "Database connection not available", http.StatusInternalServerError)
+		return
+	}
+	sqlxDB := sqlx.NewDb(db, "postgres")
+
+	stats, err := database.GetChallengeStats(sqlxDB, challengeID)
+	if err != nil {
+		utils.LogError("GetChallengeStats", err)
+		jsonError(w, "Failed to get challenge stats", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
 }

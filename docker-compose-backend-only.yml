@@ -1,15 +1,13 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: carpeek_postgres
+    container_name: autocorrect_postgres
     restart: always
     env_file:
       - .env.${ENV:-local}
     environment:
-      POSTGRES_DB: carpeek_db
-      POSTGRES_USER: carpeek_user
+      POSTGRES_DB: autocorrect_db
+      POSTGRES_USER: autocorrect_user
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
     ports:
       - "5432:5432"
@@ -21,14 +19,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: carpeek_backend
+    container_name: autocorrect_backend
     restart: always
     ports:
       - "8080:8080"
     env_file:
       - .env.${ENV:-local}
     environment:
-      DATABASE_URL: postgres://carpeek_user:${DB_PASSWORD:-password}@postgres:5432/carpeek_db?sslmode=disable
+      DATABASE_URL: postgres://autocorrect_user:${DB_PASSWORD:-password}@postgres:5432/autocorrect_db?sslmode=disable
       PORT: ${PORT}
     depends_on:
       - postgres

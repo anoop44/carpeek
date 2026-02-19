@@ -23,8 +23,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o carpeek-backend cmd/server/main.go
 # Final stage
 FROM alpine:latest
 
-# Install ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates
+# Install ca-certificates for HTTPS requests and tzdata for timezone support
+RUN apk --no-cache add ca-certificates tzdata
 
 # Create a directory for the app and set it as working directory
 RUN mkdir -p /app

@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"time"
 
-	"carpeek-backend/api"
-	"carpeek-backend/database"
+	"autocorrect-backend/api"
+	"autocorrect-backend/database"
 
 	"github.com/joho/godotenv"
 )

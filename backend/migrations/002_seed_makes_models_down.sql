@@ -1,0 +1,2 @@
+DELETE FROM models;
+DELETE FROM makes;

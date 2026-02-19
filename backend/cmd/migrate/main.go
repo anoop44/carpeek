@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"carpeek-backend/database"
+	"autocorrect-backend/database"
 
 	"github.com/joho/godotenv"
 )

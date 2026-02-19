@@ -1,38 +1,53 @@
 package utils
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
-	"strings"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
-// SignValue signs a string value using HMAC-SHA256
-func SignValue(value, secret string) string {
-	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(value))
-	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	return fmt.Sprintf("%s.%s", value, signature)
+var jwtKey = []byte("your_secret_key_change_me_in_prod") // Should come from env
+
+type Claims struct {
+	UserID string `json:"user_id"`
+	jwt.RegisteredClaims
 }
 
-// VerifySignature verifies a signed string value
-func VerifySignature(signedValue, secret string) (string, bool) {
-	parts := strings.Split(signedValue, ".")
-	if len(parts) != 2 {
-		return "", false
+// GenerateShortLivedToken creates a JWT specific to the user, valid for 5 minutes
+func GenerateShortLivedToken(userID string) (string, error) {
+	expirationTime := time.Now().Add(5 * time.Minute)
+	claims := &Claims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "autocorrect-backend",
+		},
 	}
 
-	value := parts[0]
-	expectedSignature := parts[1]
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtKey)
+}
 
-	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(value))
-	actualSignature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+// ValidateToken parses and validates the token string
+func ValidateToken(tokenString string) (*Claims, error) {
+	claims := &Claims{}
 
-	if hmac.Equal([]byte(actualSignature), []byte(expectedSignature)) {
-		return value, true
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return jwtKey, nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	return "", false
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	return claims, nil
 }

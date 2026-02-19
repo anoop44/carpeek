@@ -1,6 +1,6 @@
-# CarPeek
+# AutoCorrect
 
-CarPeek is a daily car identification challenge game where players guess vehicles from their tail lights. The app presents users with close-up images of car tail lights and challenges them to identify the make, model, and year of the vehicle.
+AutoCorrect is a daily car identification challenge game where players guess vehicles from their tail lights. The app presents users with close-up images of car tail lights and challenges them to identify the make, model, and year of the vehicle.
 
 ## Architecture
 
@@ -35,7 +35,7 @@ The application consists of two main components:
 1. Clone the repository:
    ```bash
    git clone <repository-url>
-   cd CarPeek
+   cd AutoCorrect
    ```
 
 2. Run the entire application with Docker Compose:
@@ -76,7 +76,7 @@ The application uses PostgreSQL with the following main tables:
 ## Project Structure
 
 ```
-CarPeek/
+AutoCorrect/
 ├── backend/          # Go API server
 │   ├── api/          # Route definitions
 │   ├── handlers/     # Request/response handling
