@@ -36,8 +36,8 @@ func SubmitChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	utils.LogDebug("SUBMISSION", "Request body", req)
 
 	// Validate required fields
-	if req.MakeID <= 0 || req.ModelID <= 0 {
-		jsonError(w, "Both make_id and model_id are required", http.StatusBadRequest)
+	if req.MakeID <= 0 || len(req.ModelIDs) == 0 {
+		jsonError(w, "Both make_id and model_ids are required", http.StatusBadRequest)
 		return
 	}
 
@@ -74,14 +74,20 @@ func SubmitChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate the submission
-	result, err := database.ValidateSubmission(sqlxDB, challenge.ID, req.MakeID, req.ModelID)
+	result, matchedModelID, err := database.ValidateSubmission(sqlxDB, challenge.ID, req.MakeID, req.ModelIDs)
 	if err != nil {
 		utils.LogError("ValidateSubmission", err)
 		jsonError(w, "Failed to validate submission", http.StatusInternalServerError)
 		return
 	}
 
-	points, err := database.RecordSubmission(sqlxDB, user.ID, challenge.ID, req.MakeID, req.ModelID, result.IsMakeCorrect, result.IsModelCorrect, result.Correct)
+	// Format solution image URL if present
+	if result.Solution != nil && result.Solution.ImageURL != nil {
+		fullURL := GetModelImageURL(*result.Solution.ImageURL)
+		result.Solution.ImageURL = &fullURL
+	}
+
+	points, err := database.RecordSubmission(sqlxDB, user.ID, challenge.ID, req.MakeID, matchedModelID, result.IsMakeCorrect, result.IsModelCorrect, result.Correct)
 	if err != nil {
 		utils.LogError("RecordSubmission", err)
 		// Continue even if recording fails, but we've logged it
@@ -118,7 +124,9 @@ func SubmitChallengeHandler(w http.ResponseWriter, r *http.Request) {
 			now = time.Now().In(loc)
 		}
 	}
-	database.UpdateUserActivity(sqlxDB, user.ID, now, "submission")
+	if err := database.UpdateUserActivity(sqlxDB, user.ID, now, "submission"); err != nil {
+		utils.LogError("UpdateSubmissionActivity", err)
+	}
 	result.StreakStats, _ = database.GetUserActivityStats(sqlxDB, user.ID, now)
 
 	result.NextChallengeSeconds = GetSecondsUntilNextChallenge(timezone)
@@ -127,9 +135,9 @@ func SubmitChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	utils.LogEvent("SUBMISSION", "User submitted guess", map[string]interface{}{
 		"userID":      user.ID,
 		"challengeID": challenge.ID,
-		"correct":      result.Correct,
-		"points":       result.PointsEarned,
-		"nextIn":       result.NextChallengeSeconds,
+		"correct":     result.Correct,
+		"points":      result.PointsEarned,
+		"nextIn":      result.NextChallengeSeconds,
 	})
 
 	w.Header().Set("Content-Type", "application/json")
@@ -166,7 +174,7 @@ func GetChallengeByIDHandler(w http.ResponseWriter, r *http.Request) {
 	// Format the response
 	response := models.ChallengeResponse{
 		ID:       challenge.ID,
-		ImageURL: GetFullImageURL(challenge.ImageURL),
+		ImageURL: GetFullImageURL(challenge.ImageURL, challenge.ID),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -68,6 +68,12 @@ func SubmitBonusHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Bonus rounds are only available after completing the main challenge correctly
 	if !status.IsCorrect {
+		utils.LogEvent("BONUS_DENIED", "User tried bonus without success", map[string]interface{}{
+			"userID":      user.ID,
+			"challengeID": req.ChallengeID,
+			"attempts":    status.Attempts,
+			"isCompleted": status.IsCompleted,
+		})
 		jsonError(w, "Bonus rounds are only available after correctly solving the main challenge", http.StatusForbidden)
 		return
 	}

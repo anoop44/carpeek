@@ -7,10 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -122,7 +125,9 @@ func GetTodaysChallengeHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		database.UpdateUserActivity(sqlxDB, user.ID, now, "participation")
+		if err := database.UpdateUserActivity(sqlxDB, user.ID, now, "participation"); err != nil {
+			utils.LogError("UpdateParticipationActivity", err)
+		}
 
 		// Get streak stats
 		streakStats, _ = database.GetUserActivityStats(sqlxDB, user.ID, now)
@@ -134,20 +139,39 @@ func GetTodaysChallengeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var pointsEarned float64
+	var bonusRound *models.BonusRoundInfo
+	if userStatus != nil && userStatus.IsCompleted && user != nil {
+		score, _ := database.GetUserChallengeScore(sqlxDB, user.ID, cachedChallenge.ID)
+		if score != nil {
+			pointsEarned = score.TotalPoints
+		}
+		bonusInfo, _ := database.GetBonusRoundInfo(sqlxDB, cachedChallenge.ID, user.ID)
+		bonusRound = bonusInfo
+	}
+
 	// Format a detailed response
 	response := models.DetailedChallengeResponse{
 		ID:                   cachedChallenge.ID,
 		Date:                 cachedChallenge.Date,
-		ImageURL:             GetFullImageURL(cachedChallenge.ImageURL),
+		ImageURL:             GetFullImageURL(cachedChallenge.ImageURL, cachedChallenge.ID),
 		NextChallengeSeconds: GetSecondsUntilNextChallenge(timezone),
 		StreakStats:          streakStats,
 		UserStatus:           userStatus,
+		PointsEarned:         pointsEarned,
+		BonusRound:           bonusRound,
 	}
 
 	// If the user has completed the challenge, expose the solution
-	if userStatus != nil && userStatus.IsCompleted {
+	if userStatus != nil && userStatus.IsCompleted && cachedChallenge.Model != nil {
 		response.Make = cachedChallenge.Make
-		response.Model = cachedChallenge.Model
+		// Copy the model to avoid modifying the cached version
+		modelCopy := *cachedChallenge.Model
+		if modelCopy.ImageURL != nil {
+			fullURL := GetModelImageURL(*modelCopy.ImageURL)
+			modelCopy.ImageURL = &fullURL
+		}
+		response.Model = &modelCopy
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -156,8 +180,6 @@ func GetTodaysChallengeHandler(w http.ResponseWriter, r *http.Request) {
 		utils.LogError("EncodeChallengeResponse", err)
 	}
 }
-
-
 
 // GetMakesHandler handles the request for all car makes
 func GetMakesHandler(w http.ResponseWriter, r *http.Request) {
@@ -246,4 +268,67 @@ func GetChallengeStatsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stats)
+}
+
+// GetChallengeImageHandler serves the actual image file for a challenge
+// but masks the filename by using the challenge ID in the URL.
+func GetChallengeImageHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		jsonError(w, "Invalid challenge ID", http.StatusBadRequest)
+		return
+	}
+
+	db := database.DB
+	if db == nil {
+		jsonError(w, "Database connection not available", http.StatusInternalServerError)
+		return
+	}
+	sqlxDB := sqlx.NewDb(db, "postgres")
+
+	// Get challenge details (we need the actual image path)
+	var challenge struct {
+		ImageURL string    `db:"image_url"`
+		Date     time.Time `db:"date"`
+	}
+	err = sqlxDB.Get(&challenge, "SELECT image_url, date FROM challenges WHERE id = $1", id)
+	if err != nil {
+		utils.LogError("GetChallengeImage.Fetch", err)
+		jsonError(w, "Challenge not found", http.StatusNotFound)
+		return
+	}
+
+	// // Security Check: Don't serve images for future challenges
+	// timezone := r.Header.Get("X-Timezone")
+	// if timezone == "" {
+	// 	timezone = "UTC"
+	// }
+	// loc, _ := time.LoadLocation(timezone)
+	// if loc == nil {
+	// 	loc = time.UTC
+	// }
+	// today := time.Now().In(loc).Truncate(24 * time.Hour)
+	// challengeDate := challenge.Date.In(loc).Truncate(24 * time.Hour)
+
+	// if challengeDate.After(today) {
+	// 	jsonError(w, "Access denied", http.StatusForbidden)
+	// 	return
+	// }
+
+	// Clean path and ensure it's relative to images dir
+	imagePath := challenge.ImageURL
+	imagePath = strings.TrimPrefix(imagePath, "/")
+
+	// Assuming images are in ./images directory
+	fullPath := imagePath
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		utils.LogError("GetChallengeImage.Stat", fmt.Errorf("file not found: %s", fullPath))
+		jsonError(w, "Image file not found", http.StatusNotFound)
+		return
+	}
+
+	// Serve the file
+	http.ServeFile(w, r, fullPath)
 }

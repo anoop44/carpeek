@@ -5,6 +5,7 @@ import (
 	"autocorrect-backend/middleware"
 	"autocorrect-backend/models"
 	"autocorrect-backend/utils"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -39,10 +40,38 @@ func GetSecondsUntilNextChallenge(timezone string) int64 {
 	return int64(nextMidnight.Sub(now).Seconds())
 }
 
-// GetFullImageURL constructs the full URL for a given image path
-func GetFullImageURL(imagePath string) string {
+// GetModelImageURL constructs the full URL for a car model image
+func GetModelImageURL(imagePath string) string {
 	if imagePath == "" {
 		return ""
+	}
+
+	// Model images are stored in images/actual/
+	path := imagePath
+	if !strings.HasPrefix(path, "actual/") {
+		path = "actual/" + strings.TrimPrefix(path, "/")
+	}
+
+	return GetFullImageURL(path)
+}
+
+// GetFullImageURL constructs the full URL for a given image path
+func GetFullImageURL(imagePath string, challengeID ...int) string {
+	if imagePath == "" {
+		return ""
+	}
+
+	// If it's a challenge image and we have an ID, obfuscate the URL
+	if len(challengeID) > 0 {
+		baseURL := os.Getenv("BASE_URL")
+		if baseURL == "" {
+			// Frontend proxies /api/... to backend /api/v1/...
+			return fmt.Sprintf("/api/challenge/image/%d", challengeID[0])
+		}
+		if !strings.HasSuffix(baseURL, "/") {
+			baseURL += "/"
+		}
+		return fmt.Sprintf("%sapi/v1/challenge/image/%d", baseURL, challengeID[0])
 	}
 
 	// If it's already a full URL, return it
@@ -51,18 +80,22 @@ func GetFullImageURL(imagePath string) string {
 	}
 
 	baseURL := os.Getenv("BASE_URL")
-	if baseURL == "" {
-		// Fallback to relative path if BASE_URL is not set
-		// But in this task we want full URLs
-		return imagePath
+
+	// Ensure baseURL ends with a slash if set
+	if baseURL != "" && !strings.HasSuffix(baseURL, "/") {
+		baseURL += "/"
 	}
 
 	// Remove leading slash from imagePath if present
 	imagePath = strings.TrimPrefix(imagePath, "/")
 
-	// Ensure baseURL ends with a slash
-	if !strings.HasSuffix(baseURL, "/") {
-		baseURL += "/"
+	// Ensure the path starts with "images/" since that's our mount point
+	if !strings.HasPrefix(imagePath, "images/") {
+		imagePath = "images/" + imagePath
+	}
+
+	if baseURL == "" {
+		return "/" + imagePath
 	}
 
 	return baseURL + imagePath
@@ -71,76 +104,49 @@ func GetFullImageURL(imagePath string) string {
 const (
 	UserCookieName = "carpeek_uid"
 	UserHeaderName = "X-User-ID"
+	BrowserSignatureHeader = "X-Browser-Signature"
 )
 
-// GetUserFromRequest extracts user identity from JWT (context), cookie or header, or creates a new one
+// GetUserFromRequest extracts user identity ONLY from JWT context (set by RequireAuth middleware)
 func GetUserFromRequest(w http.ResponseWriter, r *http.Request, db *sqlx.DB) (*models.User, error) {
-	secret := os.Getenv("SESSION_SECRET")
-	if secret == "" {
-		secret = "carpeek-default-secret-change-me"
+	// Identity MUST come from JWT context set by RequireAuth middleware
+	ctxUserID, ok := r.Context().Value(middleware.UserIDKey).(string)
+	if !ok || ctxUserID == "" {
+		return nil, fmt.Errorf("user not authenticated in context")
 	}
 
-	var anonymousID string
-	var found bool
-
-	// 0. Check Context (set by JWT middleware)
-	if ctxUserID, ok := r.Context().Value(middleware.UserIDKey).(string); ok && ctxUserID != "" {
-		anonymousID = ctxUserID
-		found = true
+	// Get from database
+	user, err := database.GetUserByAnonymousID(db, ctxUserID)
+	if err != nil {
+		utils.LogError("GetUserByAnonymousID", err)
+		return nil, err
 	}
 
-	// 1. Check cookie if not found in context
-	if !found {
-		cookie, err := r.Cookie(UserCookieName)
-		if err == nil {
-			val, ok := utils.VerifySignature(cookie.Value, secret)
-			if ok {
-				anonymousID = val
-				found = true
-			}
-		}
+	return user, nil
+}
+
+// GetUserBySignature identifies or creates a user based on the raw browser signature.
+// This is ONLY used by the auth/session endpoint during handshake.
+func GetUserBySignature(w http.ResponseWriter, r *http.Request, db *sqlx.DB) (*models.User, error) {
+	signature := r.Header.Get(BrowserSignatureHeader)
+	if signature == "" {
+		return nil, fmt.Errorf("browser signature missing")
 	}
 
-	// 2. Fallback to header (localStorage mirror)
-	if !found {
-		headerVal := r.Header.Get(UserHeaderName)
-		if headerVal != "" {
-			val, ok := utils.VerifySignature(headerVal, secret)
-			if ok {
-				anonymousID = val
-				found = true
-			}
-		}
+	// Validate signature format (should be UUID)
+	if _, err := uuid.Parse(signature); err != nil {
+		return nil, fmt.Errorf("invalid browser signature format")
 	}
 
-	// 3. Create new if not found
-	if !found {
-		anonymousID = uuid.New().String()
-		utils.LogEvent("USER", "Created new anonymous user", anonymousID)
-	}
-
-	// 4. Get or create in database
-	user, err := database.GetOrCreateUser(db, anonymousID)
+	// Get or create in database
+	user, err := database.GetOrCreateUser(db, signature)
 	if err != nil {
 		utils.LogError("GetOrCreateUser", err)
 		return nil, err
 	}
 
-	// 5. Set/Refresh cookie (only if we're not just using JWT, or maybe always to keep cookie alive)
-	// If it came from JWT, we might not need to set cookie, but harmless to refresh.
-	signedID := utils.SignValue(anonymousID, secret)
-	http.SetCookie(w, &http.Cookie{
-		Name:     UserCookieName,
-		Value:    signedID,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   os.Getenv("ENV") == "production",
-		SameSite: http.SameSiteLaxMode,
-		MaxAge:   365 * 24 * 60 * 60, // 1 year
-	})
-
-	// Also set a header for the frontend to store in localStorage if needed
-	w.Header().Set(UserHeaderName, signedID)
+	// Set a legacy header or cookie if needed, but primarily we rely on JWT now
+	w.Header().Set(UserHeaderName, signature)
 
 	return user, nil
 }

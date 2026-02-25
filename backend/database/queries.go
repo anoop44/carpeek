@@ -63,7 +63,8 @@ func GetDetailedTodaysChallenge(db *sqlx.DB, date string) (*models.DetailedChall
 			mo.year_range as model_year_range,
 			mo.generation as model_generation,
 			mo.location as model_location,
-			mo.codename as model_codename
+			mo.codename as model_codename,
+			mo.image_url as model_image_url
 		FROM challenges c
 		LEFT JOIN makes m ON c.solution_make_id = m.id
 		LEFT JOIN models mo ON c.solution_model_id = mo.id
@@ -84,6 +85,7 @@ func GetDetailedTodaysChallenge(db *sqlx.DB, date string) (*models.DetailedChall
 		ModelGeneration *string   `db:"model_generation"` // Use pointer to handle possible NULL
 		ModelLocation   *string   `db:"model_location"`   // Use pointer to handle possible NULL
 		ModelCodename   *string   `db:"model_codename"`   // Use pointer to handle possible NULL
+		ModelImageURL  *string   `db:"model_image_url"`  // Use pointer to handle possible NULL
 	}
 
 	err := db.Get(&result, query, today)
@@ -114,6 +116,7 @@ func GetDetailedTodaysChallenge(db *sqlx.DB, date string) (*models.DetailedChall
 			Generation: result.ModelGeneration,
 			Location:   result.ModelLocation,
 			Codename:   result.ModelCodename,
+			ImageURL:   result.ModelImageURL,
 		}
 
 		// Set make_id from the challenge record
@@ -128,7 +131,7 @@ func GetDetailedTodaysChallenge(db *sqlx.DB, date string) (*models.DetailedChall
 }
 
 // ValidateSubmission validates a submission against a challenge
-func ValidateSubmission(db *sqlx.DB, challengeID int, submittedMakeID int, submittedModelID int) (*models.SubmissionResult, error) {
+func ValidateSubmission(db *sqlx.DB, challengeID int, submittedMakeID int, submittedModelIDs []int) (*models.SubmissionResult, int, error) {
 	query := `
 		SELECT
 			c.id,
@@ -142,7 +145,8 @@ func ValidateSubmission(db *sqlx.DB, challengeID int, submittedMakeID int, submi
 			mo.generation as model_generation,
 			mo.location as model_location,
 			mo.codename as model_codename,
-			mo.known_for as model_known_for
+			mo.known_for as model_known_for,
+			mo.image_url as model_image_url
 		FROM challenges c
 		LEFT JOIN makes m ON c.solution_make_id = m.id
 		LEFT JOIN models mo ON c.solution_model_id = mo.id
@@ -162,11 +166,12 @@ func ValidateSubmission(db *sqlx.DB, challengeID int, submittedMakeID int, submi
 		SolutionModelLocation   *string   `db:"model_location"`
 		SolutionModelCodename   *string   `db:"model_codename"`
 		SolutionModelKnownFor   *string   `db:"model_known_for"`
+		SolutionModelImageURL  *string   `db:"model_image_url"`
 	}
 
 	err := db.Get(&result, query, challengeID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get challenge for validation: %v", err)
+		return nil, 0, fmt.Errorf("failed to get challenge for validation: %v", err)
 	}
 
 	submissionResult := &models.SubmissionResult{
@@ -188,24 +193,38 @@ func ValidateSubmission(db *sqlx.DB, challengeID int, submittedMakeID int, submi
 	submissionResult.Solution.Generation = result.SolutionModelGeneration
 	submissionResult.Solution.Codename = result.SolutionModelCodename
 	submissionResult.Solution.KnownFor = result.SolutionModelKnownFor
+	submissionResult.Solution.ImageURL = result.SolutionModelImageURL
 
 	solMakeID := 0
 	if result.SolutionMakeID != nil {
 		solMakeID = *result.SolutionMakeID
 	}
 
-	// Get the submitted model name for comparison
-	var submittedModelName string
-	err = db.Get(&submittedModelName, "SELECT name FROM models WHERE id = $1", submittedModelID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get submitted model name: %v", err)
+	// Evaluate if the correct solution model ID is among the submitted model IDs
+	isModelCorrect := false
+	matchedModelID := 0
+	if len(submittedModelIDs) > 0 {
+		matchedModelID = submittedModelIDs[0] // Default fallback for DB recording
+	}
+	
+	if result.SolutionModelID != nil {
+		solModelID := *result.SolutionModelID
+		for _, id := range submittedModelIDs {
+			if id == solModelID {
+				isModelCorrect = true
+				matchedModelID = id // Use the exact matching ID for DB recording
+				break
+			}
+		}
 	}
 
-	// Check if make is correct
-	isMakeCorrect := submittedMakeID == solMakeID
+	// Even if not perfectly correct, if they guessed the right model name (from any ID in group), 
+	// we should treat the model as correct conceptually, but wait, the generation might be wrong.
+	// Actually, the user guesses Make + Model Name from the dropdown. The exact Generation is NOT guessed initially!
+	// So simply matching the name is what we do!
+	// The problem described: "When such models are returned in api, the response should have all the ids of the model in it and when user selects, all the ids associated should be sent back for verification and challenge answer should be compared against every id in submission"
 
-	// Check if model is correct
-	isModelCorrect := result.SolutionModelName != nil && submittedModelName == *result.SolutionModelName
+	isMakeCorrect := submittedMakeID == solMakeID
 
 	// Set the correctness flags
 	submissionResult.IsMakeCorrect = isMakeCorrect
@@ -232,7 +251,7 @@ func ValidateSubmission(db *sqlx.DB, challengeID int, submittedMakeID int, submi
 		submissionResult.Message = "Incorrect. Neither the make nor the model is correct."
 	}
 
-	return submissionResult, nil
+	return submissionResult, matchedModelID, nil
 }
 
 // GetMakeByID retrieves a make by its ID
@@ -340,6 +359,17 @@ func GetOrCreateUser(db *sqlx.DB, anonymousID string) (*models.User, error) {
 		return nil, fmt.Errorf("failed to create user: %v", err)
 	}
 
+	return &user, nil
+}
+
+// GetUserByAnonymousID retrieves a user by anonymous ID without creating one
+func GetUserByAnonymousID(db *sqlx.DB, anonymousID string) (*models.User, error) {
+	var user models.User
+	query := `SELECT id, anonymous_id, google_id, email, display_name, profile_picture_url, is_linked, created_at, updated_at FROM users WHERE anonymous_id = $1`
+	err := db.Get(&user, query, anonymousID)
+	if err != nil {
+		return nil, err
+	}
 	return &user, nil
 }
 
@@ -509,7 +539,7 @@ func GetUserChallengeStatus(db *sqlx.DB, userID int, challengeID int) (*models.U
 	}
 
 	var isCorrect bool
-	err = db.Get(&isCorrect, "SELECT COALESCE(bool_or(is_correct), false) FROM submissions WHERE user_id = $1 AND challenge_id = $2", userID, challengeID)
+	err = db.Get(&isCorrect, "SELECT EXISTS(SELECT 1 FROM submissions WHERE user_id = $1 AND challenge_id = $2 AND is_correct = true)", userID, challengeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check if completed correctly: %v", err)
 	}
@@ -524,6 +554,17 @@ func GetUserChallengeStatus(db *sqlx.DB, userID int, challengeID int) (*models.U
 	}
 
 	return status, nil
+}
+
+// GetUserChallengeScore returns the user's score details for a specific challenge
+func GetUserChallengeScore(db *sqlx.DB, userID int, challengeID int) (*models.UserChallengeScore, error) {
+	var score models.UserChallengeScore
+	query := `SELECT id, user_id, challenge_id, attempt_number, full_solve_points, make_bonus_points, bonus_round_points, total_points, is_fully_solved, make_ever_wrong, created_at, updated_at FROM user_challenge_scores WHERE user_id = $1 AND challenge_id = $2`
+	err := db.Get(&score, query, userID, challengeID)
+	if err != nil {
+		return nil, err
+	}
+	return &score, nil
 }
 
 // GetBonusRoundInfo determines which bonus rounds are available for a challenge
@@ -873,7 +914,8 @@ func updateBonusPoints(tx *sqlx.Tx, userID int, challengeID int, points float64)
 func UpdateUserActivity(db *sqlx.DB, userID int, date time.Time, activityType string) error {
 	// activityType should be 'participation' or 'submission'
 	day := date.Day()
-	monthDate := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
+	// Always use UTC for the month bucket to avoid timezone shifting in DB DATE columns
+	monthDate := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, time.UTC)
 
 	column := "participation_bitmap"
 	if activityType == "submission" {
@@ -991,8 +1033,9 @@ func calculateCurrentStreak(rows []struct {
 		var bitmap int
 		hasBitmap := false
 		for _, row := range rows {
-			rowYear, rowMonth, _ := row.MonthDate.Date()
-			if rowYear == targetYear && rowMonth == targetMonth {
+			// Compare year and month in UTC to match our storage convention
+			rowUTC := row.MonthDate.UTC()
+			if rowUTC.Year() == targetYear && rowUTC.Month() == targetMonth {
 				if activityType == "participation" {
 					bitmap = row.ParticipationBitmap
 				} else {

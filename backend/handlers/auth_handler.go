@@ -39,11 +39,11 @@ func GetSessionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	sqlxDB := sqlx.NewDb(db, "postgres")
 
-	// Get or create user based on existing cookie/header logic
-	user, err := GetUserFromRequest(w, r, sqlxDB)
+	// Get or create user based on Browser Signature (handshake)
+	user, err := GetUserBySignature(w, r, sqlxDB)
 	if err != nil {
-		utils.LogError("GetSessionHandler.GetUser", err)
-		jsonError(w, "Failed to identify user", http.StatusInternalServerError)
+		utils.LogError("GetSessionHandler.Handshake", err)
+		jsonError(w, "Session handshake failed: "+err.Error(), http.StatusUnauthorized)
 		return
 	}
 

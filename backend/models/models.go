@@ -76,6 +76,8 @@ type DetailedChallengeResponse struct {
 	UserStatus           *UserChallengeStatus `json:"user_status,omitempty"`
 	NextChallengeSeconds int64                `json:"next_challenge_seconds"`
 	StreakStats          *UserActivityStats   `json:"streak_stats,omitempty"`
+	PointsEarned         float64              `json:"points_earned"`
+	BonusRound           *BonusRoundInfo      `json:"bonus_round,omitempty"`
 }
 
 // UserChallengeStatus represents the user's progress on a challenge
@@ -86,11 +88,10 @@ type UserChallengeStatus struct {
 	IsCorrect   bool `json:"is_correct"`
 }
 
-// SubmissionRequest represents the request for challenge validation
 type SubmissionRequest struct {
-	ChallengeID int `json:"challenge_id" validate:"required"`
-	MakeID      int `json:"make_id" validate:"required"`
-	ModelID     int `json:"model_id" validate:"required"`
+	ChallengeID int   `json:"challenge_id" validate:"required"`
+	MakeID      int   `json:"make_id" validate:"required"`
+	ModelIDs    []int `json:"model_ids" validate:"required"`
 }
 
 // SubmissionResult represents the response for challenge validation
@@ -125,6 +126,7 @@ type SolutionInfo struct {
 	Generation *string `json:"generation,omitempty"`
 	Codename   *string `json:"codename,omitempty"`
 	KnownFor   *string `json:"known_for,omitempty"`
+	ImageURL   *string `json:"image_url,omitempty"`
 }
 
 // LeaderboardEntry represents a user's standing on the leaderboard
