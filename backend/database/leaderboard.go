@@ -11,10 +11,12 @@ import (
 // Now uses the user_challenge_scores table for accurate point-based scoring
 func GetDailyLeaderboard(db *sqlx.DB, challengeID int) ([]models.LeaderboardEntry, error) {
 	// Query to get users who attempted the challenge, ordered by points
-	// Also fetches lifetime points to determine level
+	// Also fetches lifetime points to determine level, and Google profile info
 	query := `
 		SELECT 
 			u.anonymous_id,
+			COALESCE(u.display_name, '') as display_name,
+			COALESCE(u.profile_picture_url, '') as profile_picture_url,
 			ucs.attempt_number,
 			ucs.total_points,
 			ucs.is_fully_solved,
@@ -30,14 +32,16 @@ func GetDailyLeaderboard(db *sqlx.DB, challengeID int) ([]models.LeaderboardEntr
 	`
 
 	var rows []struct {
-		AnonymousID      string  `db:"anonymous_id"`
-		AttemptNumber    int     `db:"attempt_number"`
-		TotalPoints      float64 `db:"total_points"`
-		IsFullySolved    bool    `db:"is_fully_solved"`
-		FullSolvePoints  float64 `db:"full_solve_points"`
-		MakeBonusPoints  float64 `db:"make_bonus_points"`
-		BonusRoundPoints float64 `db:"bonus_round_points"`
-		LifetimePoints   float64 `db:"lifetime_points"`
+		AnonymousID       string  `db:"anonymous_id"`
+		DisplayName       string  `db:"display_name"`
+		ProfilePictureURL string  `db:"profile_picture_url"`
+		AttemptNumber     int     `db:"attempt_number"`
+		TotalPoints       float64 `db:"total_points"`
+		IsFullySolved     bool    `db:"is_fully_solved"`
+		FullSolvePoints   float64 `db:"full_solve_points"`
+		MakeBonusPoints   float64 `db:"make_bonus_points"`
+		BonusRoundPoints  float64 `db:"bonus_round_points"`
+		LifetimePoints    float64 `db:"lifetime_points"`
 	}
 
 	err := db.Select(&rows, query, challengeID)
@@ -47,8 +51,11 @@ func GetDailyLeaderboard(db *sqlx.DB, challengeID int) ([]models.LeaderboardEntr
 
 	leaderboard := make([]models.LeaderboardEntry, len(rows))
 	for i, row := range rows {
-		// Generate a deterministic pilot name based on ID
+		// Use Google display name if available, otherwise generate a pilot name
 		pilotName := generatePilotName(row.AnonymousID)
+		if row.DisplayName != "" {
+			pilotName = row.DisplayName
+		}
 		
 		// Simulate a "Velocity" or time based on attempts and random variation per user
 		baseTime := float64(row.AttemptNumber) * 0.8
@@ -58,17 +65,18 @@ func GetDailyLeaderboard(db *sqlx.DB, challengeID int) ([]models.LeaderboardEntr
 		level, title := calculateLevel(row.LifetimePoints)
 
 		leaderboard[i] = models.LeaderboardEntry{
-			Rank:       i + 1,
-			UserID:     row.AnonymousID,
-			PilotName:  pilotName,
-			Level:      level,
-			LevelTitle: title,
-			Score:      row.TotalPoints,
-			MainScore:  row.FullSolvePoints + row.MakeBonusPoints,
-			BonusScore: row.BonusRoundPoints,
-			Accuracy:   calculateAccuracy(row.AttemptNumber, row.IsFullySolved),
-			Attempts:   row.AttemptNumber,
-			Time:       fmt.Sprintf("%.3fs", timeSeconds),
+			Rank:              i + 1,
+			UserID:            row.AnonymousID,
+			PilotName:         pilotName,
+			ProfilePictureURL: row.ProfilePictureURL,
+			Level:             level,
+			LevelTitle:        title,
+			Score:             row.TotalPoints,
+			MainScore:         row.FullSolvePoints + row.MakeBonusPoints,
+			BonusScore:        row.BonusRoundPoints,
+			Accuracy:          calculateAccuracy(row.AttemptNumber, row.IsFullySolved),
+			Attempts:          row.AttemptNumber,
+			Time:              fmt.Sprintf("%.3fs", timeSeconds),
 		}
 	}
 
@@ -80,6 +88,8 @@ func GetAllTimeLeaderboard(db *sqlx.DB) ([]models.LeaderboardEntry, error) {
 	query := `
 		SELECT 
 			u.anonymous_id,
+			COALESCE(u.display_name, '') as display_name,
+			COALESCE(u.profile_picture_url, '') as profile_picture_url,
 			SUM(ucs.total_points) as total_points,
 			COUNT(ucs.id) as challenges_attempted,
 			SUM(CASE 
@@ -88,13 +98,15 @@ func GetAllTimeLeaderboard(db *sqlx.DB) ([]models.LeaderboardEntry, error) {
 			END) as total_accuracy_points
 		FROM user_challenge_scores ucs
 		JOIN users u ON ucs.user_id = u.id
-		GROUP BY u.anonymous_id
+		GROUP BY u.anonymous_id, u.display_name, u.profile_picture_url
 		ORDER BY total_points DESC, total_accuracy_points DESC
 		LIMIT 100
 	`
 
 	var rows []struct {
 		AnonymousID         string  `db:"anonymous_id"`
+		DisplayName         string  `db:"display_name"`
+		ProfilePictureURL   string  `db:"profile_picture_url"`
 		TotalPoints         float64 `db:"total_points"`
 		ChallengesAttempted int     `db:"challenges_attempted"`
 		TotalAccuracyPoints float64 `db:"total_accuracy_points"`
@@ -107,7 +119,11 @@ func GetAllTimeLeaderboard(db *sqlx.DB) ([]models.LeaderboardEntry, error) {
 
 	leaderboard := make([]models.LeaderboardEntry, len(rows))
 	for i, row := range rows {
+		// Use Google display name if available, otherwise generate a pilot name
 		pilotName := generatePilotName(row.AnonymousID)
+		if row.DisplayName != "" {
+			pilotName = row.DisplayName
+		}
 		
 		// Calculate accuracy as average of individual accuracies
 		var accuracy float64 = 0
@@ -118,15 +134,16 @@ func GetAllTimeLeaderboard(db *sqlx.DB) ([]models.LeaderboardEntry, error) {
 		level, title := calculateLevel(row.TotalPoints)
 		
 		leaderboard[i] = models.LeaderboardEntry{
-			Rank:       i + 1,
-			UserID:     row.AnonymousID,
-			PilotName:  pilotName,
-			Level:      level,
-			LevelTitle: title,
-			Score:      row.TotalPoints,
-			Accuracy:   accuracy,
-			Attempts:   row.ChallengesAttempted,
-			Time:       "-",
+			Rank:              i + 1,
+			UserID:            row.AnonymousID,
+			PilotName:         pilotName,
+			ProfilePictureURL: row.ProfilePictureURL,
+			Level:             level,
+			LevelTitle:        title,
+			Score:             row.TotalPoints,
+			Accuracy:          accuracy,
+			Attempts:          row.ChallengesAttempted,
+			Time:              "-",
 		}
 	}
 

@@ -6,9 +6,9 @@ services:
     env_file:
       - .env.${ENV:-local}
     environment:
-      POSTGRES_DB: autocorrect_db
-      POSTGRES_USER: autocorrect_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_DB}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -27,9 +27,7 @@ services:
     env_file:
       - .env.${ENV:-local}
     environment:
-      DATABASE_URL: postgres://autocorrect_user:${DB_PASSWORD:-password}@postgres:5432/autocorrect_db?sslmode=disable
-      PORT: ${PORT}
-      BASE_URL: ${BASE_URL}
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_DB}?sslmode=disable
     depends_on:
       - postgres
     volumes:
@@ -42,6 +40,7 @@ services:
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
     container_name: autocorrect_frontend
     restart: always
     ports:
@@ -49,7 +48,6 @@ services:
     env_file:
       - .env.${ENV:-local}
     environment:
-      - BACKEND_API_URL=http://backend:8080
       - PORT=3000
     depends_on:
       - backend

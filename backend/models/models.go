@@ -131,18 +131,19 @@ type SolutionInfo struct {
 
 // LeaderboardEntry represents a user's standing on the leaderboard
 type LeaderboardEntry struct {
-	Rank          int     `json:"rank"`
-	UserID        string  `json:"user_id"` // Anonymous ID or generated name
-	PilotName     string  `json:"pilot_name"`
-	Level         int     `json:"level"`
-	LevelTitle    string  `json:"level_title"`
-	Score         float64 `json:"score"` // For daily: score in that challenge. For all-time: total score
-	MainScore     float64 `json:"main_score"`
-	BonusScore    float64 `json:"bonus_score"`
-	Accuracy      float64 `json:"accuracy"` // Percentage
-	Attempts      int     `json:"attempts"` // For daily: attempts used
-	Time          string  `json:"time"`     // Formatting string like "1.2s" or date
-	IsCurrentUser bool    `json:"is_current_user"`
+	Rank              int     `json:"rank"`
+	UserID            string  `json:"user_id"` // Anonymous ID or generated name
+	PilotName         string  `json:"pilot_name"`
+	ProfilePictureURL string  `json:"profile_picture_url,omitempty"`
+	Level             int     `json:"level"`
+	LevelTitle        string  `json:"level_title"`
+	Score             float64 `json:"score"` // For daily: score in that challenge. For all-time: total score
+	MainScore         float64 `json:"main_score"`
+	BonusScore        float64 `json:"bonus_score"`
+	Accuracy          float64 `json:"accuracy"` // Percentage
+	Attempts          int     `json:"attempts"` // For daily: attempts used
+	Time              string  `json:"time"`     // Formatting string like "1.2s" or date
+	IsCurrentUser     bool    `json:"is_current_user"`
 }
 
 // Submission represents a user's guess for a challenge
@@ -236,8 +237,10 @@ type UserActivityStats struct {
 
 // ChallengeStats represents aggregated stats for a specific challenge
 type ChallengeStats struct {
-	ChallengeID      int     `json:"challenge_id"`
-	PlayersToday     int     `json:"players_today"`
-	AverageAccuracy  float64 `json:"average_accuracy"`
-	TotalBonusPoints float64 `json:"total_bonus_points"`
+	ChallengeID           int     `json:"challenge_id"`
+	PlayersToday          int     `json:"players_today"`
+	TotalPlayers          int     `json:"total_players"`
+	AverageAccuracy       float64 `json:"average_accuracy"`
+	GlobalAverageAccuracy float64 `json:"global_average_accuracy"`
+	TotalBonusPoints      float64 `json:"total_bonus_points"`
 }

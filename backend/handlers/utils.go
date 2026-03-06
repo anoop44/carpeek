@@ -41,18 +41,19 @@ func GetSecondsUntilNextChallenge(timezone string) int64 {
 }
 
 // GetModelImageURL constructs the full URL for a car model image
+// Model images are stored in images/actual/ directory
 func GetModelImageURL(imagePath string) string {
 	if imagePath == "" {
 		return ""
 	}
 
-	// Model images are stored in images/actual/
-	path := imagePath
-	if !strings.HasPrefix(path, "actual/") {
-		path = "actual/" + strings.TrimPrefix(path, "/")
+	// Model image_url values are relative paths like "bmw/file.jpg"
+	// They are stored in images/actual/ directory
+	if !strings.HasPrefix(imagePath, "actual/") {
+		imagePath = "actual/" + imagePath
 	}
 
-	return GetFullImageURL(path)
+	return GetFullImageURL(imagePath)
 }
 
 // GetFullImageURL constructs the full URL for a given image path

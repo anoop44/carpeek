@@ -64,7 +64,8 @@ func GetDetailedTodaysChallenge(db *sqlx.DB, date string) (*models.DetailedChall
 			mo.generation as model_generation,
 			mo.location as model_location,
 			mo.codename as model_codename,
-			mo.image_url as model_image_url
+			mo.image_url as model_image_url,
+			mo.known_for as model_known_for
 		FROM challenges c
 		LEFT JOIN makes m ON c.solution_make_id = m.id
 		LEFT JOIN models mo ON c.solution_model_id = mo.id
@@ -85,7 +86,8 @@ func GetDetailedTodaysChallenge(db *sqlx.DB, date string) (*models.DetailedChall
 		ModelGeneration *string   `db:"model_generation"` // Use pointer to handle possible NULL
 		ModelLocation   *string   `db:"model_location"`   // Use pointer to handle possible NULL
 		ModelCodename   *string   `db:"model_codename"`   // Use pointer to handle possible NULL
-		ModelImageURL  *string   `db:"model_image_url"`  // Use pointer to handle possible NULL
+		ModelImageURL   *string   `db:"model_image_url"`  // Use pointer to handle possible NULL
+		ModelKnownFor   *string   `db:"model_known_for"`  // Use pointer to handle possible NULL
 	}
 
 	err := db.Get(&result, query, today)
@@ -117,6 +119,7 @@ func GetDetailedTodaysChallenge(db *sqlx.DB, date string) (*models.DetailedChall
 			Location:   result.ModelLocation,
 			Codename:   result.ModelCodename,
 			ImageURL:   result.ModelImageURL,
+			KnownFor:   result.ModelKnownFor,
 		}
 
 		// Set make_id from the challenge record
@@ -384,20 +387,37 @@ func GetUserByGoogleID(db *sqlx.DB, googleID string) (*models.User, error) {
 	return &user, nil
 }
 
-// LinkGoogleAccount links a Google account to an anonymous user
+// LinkGoogleAccount links a Google account to the current anonymous user record.
+// If the Google account is already linked to another user, that other user record is removed.
 func LinkGoogleAccount(db *sqlx.DB, anonymousID string, googleID string, email string, name string, picture string) (*models.User, error) {
-	// First check if a user with this Google ID already exists
-	existingUser, err := GetUserByGoogleID(db, googleID)
-	if err == nil {
-		// User exists, return this user (login)
-		// Note: This effectively switches the session to the existing user.
-		// Merging data from anonymousID would be complex, so for now we prioritize the existing account.
-		return existingUser, nil
+	tx, err := db.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	// 1. Get current user record
+	var currentUserID int
+	err = tx.Get(&currentUserID, "SELECT id FROM users WHERE anonymous_id = $1", anonymousID)
+	if err != nil {
+		// If current session user record doesn't exist, something is wrong
+		return nil, fmt.Errorf("current user record not found: %v", err)
 	}
 
-	// If not exists, find the anonymous user and update
-	var user models.User
-	query := `
+	// 2. Check if this Google account is linked to a DIFFERENT user record
+	var otherUserID int
+	err = tx.Get(&otherUserID, "SELECT id FROM users WHERE google_id = $1 AND id != $2", googleID, currentUserID)
+	if err == nil {
+		// It's linked elsewhere. The user said "no need to move submission and other details",
+		// so we remove the other user record to prevent duplication on the leaderboard.
+		_, err = tx.Exec("DELETE FROM users WHERE id = $1", otherUserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to remove existing link: %v", err)
+		}
+	}
+
+	// 3. Update the current user record with Google info
+	updateQuery := `
 		UPDATE users 
 		SET google_id = $2, 
 			email = $3, 
@@ -405,12 +425,17 @@ func LinkGoogleAccount(db *sqlx.DB, anonymousID string, googleID string, email s
 			profile_picture_url = $5, 
 			is_linked = TRUE, 
 			updated_at = CURRENT_TIMESTAMP 
-		WHERE anonymous_id = $1 
+		WHERE id = $1 
 		RETURNING id, anonymous_id, google_id, email, display_name, profile_picture_url, is_linked, created_at, updated_at
 	`
-	err = db.QueryRowx(query, anonymousID, googleID, email, name, picture).StructScan(&user)
+	var user models.User
+	err = tx.QueryRowx(updateQuery, currentUserID, googleID, email, name, picture).StructScan(&user)
 	if err != nil {
-		return nil, fmt.Errorf("failed to link google account: %v", err)
+		return nil, fmt.Errorf("failed to update current user with google details: %v", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
 	}
 
 	return &user, nil
@@ -1094,27 +1119,50 @@ func GetUserBonusAttempts(db *sqlx.DB, userID int, challengeID int) ([]models.Bo
 	return attempts, nil
 }
 
-// GetChallengeStats calculates global stats for a specific challenge
+// GetChallengeStats calculates global stats for a specific challenge and lifetime stats
 func GetChallengeStats(db *sqlx.DB, challengeID int) (*models.ChallengeStats, error) {
 	stats := &models.ChallengeStats{ChallengeID: challengeID}
 
-	// Players today: Count unique users in submissions
-	err := db.Get(&stats.PlayersToday, "SELECT COUNT(DISTINCT user_id) FROM submissions WHERE challenge_id = $1", challengeID)
+	// Players today: Count unique users in submissions for THIS challenge
+	err := db.Get(&stats.PlayersToday, "SELECT COUNT(DISTINCT user_id) FROM user_challenge_scores WHERE challenge_id = $1", challengeID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Average accuracy: (Total Correct Guesses / Total Guesses) * 100
+	// Total players: Count unique users in user_challenge_scores across ALL challenges
+	err = db.Get(&stats.TotalPlayers, "SELECT COUNT(DISTINCT user_id) FROM user_challenge_scores")
+	if err != nil {
+		return nil, err
+	}
+
+	// Average accuracy for today: use the same per-user formula as the leaderboard
+	// accuracy = 110 - (attempt_number * 10) for solved, 0 for unsolved, averaged across users
 	err = db.Get(&stats.AverageAccuracy, `
 		SELECT COALESCE(
-			(SUM(CASE WHEN is_correct THEN 1 ELSE 0 END)::FLOAT / NULLIF(COUNT(*), 0)) * 100, 
+			AVG(CASE 
+				WHEN is_fully_solved THEN GREATEST(0, LEAST(100, 110.0 - attempt_number * 10.0))
+				ELSE 0 
+			END),
 			0.0
-		) FROM submissions WHERE challenge_id = $1`, challengeID)
+		) FROM user_challenge_scores WHERE challenge_id = $1`, challengeID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Total bonus points
+	// Global Average accuracy: same formula across ALL challenges
+	err = db.Get(&stats.GlobalAverageAccuracy, `
+		SELECT COALESCE(
+			AVG(CASE 
+				WHEN is_fully_solved THEN GREATEST(0, LEAST(100, 110.0 - attempt_number * 10.0))
+				ELSE 0 
+			END),
+			0.0
+		) FROM user_challenge_scores`)
+	if err != nil {
+		return nil, err
+	}
+
+	// Total bonus points for THIS challenge
 	err = db.Get(&stats.TotalBonusPoints, "SELECT COALESCE(SUM(bonus_round_points), 0.0) FROM user_challenge_scores WHERE challenge_id = $1", challengeID)
 	if err != nil {
 		return nil, err

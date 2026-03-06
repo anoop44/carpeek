@@ -144,7 +144,7 @@ func GetTodaysChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	if userStatus != nil && userStatus.IsCompleted && user != nil {
 		score, _ := database.GetUserChallengeScore(sqlxDB, user.ID, cachedChallenge.ID)
 		if score != nil {
-			pointsEarned = score.TotalPoints
+			pointsEarned = score.FullSolvePoints + score.MakeBonusPoints
 		}
 		bonusInfo, _ := database.GetBonusRoundInfo(sqlxDB, cachedChallenge.ID, user.ID)
 		bonusRound = bonusInfo

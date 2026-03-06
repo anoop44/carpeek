@@ -21,8 +21,8 @@ func ConnectDB() (*sql.DB, error) {
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://carpeek_user:password@localhost:5432/carpeek_db?sslmode=disable"
 		log.Println("│ ⚠ DATABASE_URL not set, using default connection string")
+		return nil, fmt.Errorf("DATABASE_URL environment variable is not set")
 	}
 
 	// Parse and log connection details (without password)
