@@ -1,0 +1,59 @@
+# Local environment files
+.env.local
+.env.production
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Backend binaries and build artifacts
+backend/carpeek-backend
+backend/bin/
+backend/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go specific
+backend/vendor/
+
+# Frontend (if not covered by frontend/.gitignore)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel/
+frontend/*.tsbuildinfo
+frontend/npm-debug.log*
+
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/scripts/venv/
+.venv/
+venv/
+ENV/
+env/
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
