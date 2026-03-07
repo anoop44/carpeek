@@ -52,6 +52,11 @@ Thumbs.db
 # Docker
 .dockerignore
 
+# Documentation and Help Files
+*.md
+api-doc/
+docs/
+
 # IDEs
 .vscode/
 .idea/
