@@ -56,6 +56,10 @@ Thumbs.db
 *.md
 api-doc/
 docs/
+.env.example
+
+# VM and Nginx Configuration
+vm-nginx.conf
 
 # IDEs
 .vscode/
