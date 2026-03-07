@@ -130,6 +130,10 @@ func SubmitChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	result.StreakStats, _ = database.GetUserActivityStats(sqlxDB, user.ID, now)
 
 	result.NextChallengeSeconds = GetSecondsUntilNextChallenge(timezone)
+	
+	// Add history
+	history, _ := database.GetChallengeSubmissions(sqlxDB, user.ID, challenge.ID)
+	result.AttemptHistory = history
 
 	// Log the submission event
 	utils.LogEvent("SUBMISSION", "User submitted guess", map[string]interface{}{

@@ -60,7 +60,8 @@ fi
 # Check if the .env file exists
 if [ ! -f "$ENV_FILE" ]; then
     echo "Error: Environment file not found: $ENV_FILE"
-    echo "Please create $ENV_FILE first."
+    echo "Please create $ENV_FILE first. You can use the example as a template:"
+    echo "cp .env.example $ENV_FILE"
     exit 1
 fi
 

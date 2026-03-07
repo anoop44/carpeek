@@ -78,6 +78,7 @@ type DetailedChallengeResponse struct {
 	StreakStats          *UserActivityStats   `json:"streak_stats,omitempty"`
 	PointsEarned         float64              `json:"points_earned"`
 	BonusRound           *BonusRoundInfo      `json:"bonus_round,omitempty"`
+	AttemptHistory       []Submission         `json:"attempt_history,omitempty"`
 }
 
 // UserChallengeStatus represents the user's progress on a challenge
@@ -110,6 +111,7 @@ type SubmissionResult struct {
 	PointsEarned         float64              `json:"points_earned"`
 	NextChallengeSeconds int64                `json:"next_challenge_seconds"`
 	StreakStats          *UserActivityStats   `json:"streak_stats,omitempty"`
+	AttemptHistory       []Submission         `json:"attempt_history,omitempty"`
 }
 
 // GoogleLoginRequest represents the request for Google login

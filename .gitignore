@@ -57,6 +57,7 @@ Thumbs.db
 api-doc/
 docs/
 .env.example
+ADSENSE_SETUP.md
 
 # VM and Nginx Configuration
 vm-nginx.conf

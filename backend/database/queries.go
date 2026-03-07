@@ -133,7 +133,23 @@ func GetDetailedTodaysChallenge(db *sqlx.DB, date string) (*models.DetailedChall
 	return detailedChallenge, nil
 }
 
-// ValidateSubmission validates a submission against a challenge
+// GetChallengeSubmissions returns all submissions for a user on a specific challenge
+func GetChallengeSubmissions(db *sqlx.DB, userID int, challengeID int) ([]models.Submission, error) {
+	query := `
+		SELECT id, user_id, challenge_id, make_id, model_id, is_correct, is_make_correct, is_model_correct, attempt_number, created_at
+		FROM submissions
+		WHERE user_id = $1 AND challenge_id = $2
+		ORDER BY attempt_number ASC
+	`
+	var submissions []models.Submission
+	err := db.Select(&submissions, query, userID, challengeID)
+	if err != nil {
+		return nil, err
+	}
+	return submissions, nil
+}
+
+// ValidateSubmission validates a user's guess against the challenge solution
 func ValidateSubmission(db *sqlx.DB, challengeID int, submittedMakeID int, submittedModelIDs []int) (*models.SubmissionResult, int, error) {
 	query := `
 		SELECT

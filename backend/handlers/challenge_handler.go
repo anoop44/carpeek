@@ -162,6 +162,11 @@ func GetTodaysChallengeHandler(w http.ResponseWriter, r *http.Request) {
 		BonusRound:           bonusRound,
 	}
 
+	if user != nil {
+		history, _ := database.GetChallengeSubmissions(sqlxDB, user.ID, cachedChallenge.ID)
+		response.AttemptHistory = history
+	}
+
 	// If the user has completed the challenge, expose the solution
 	if userStatus != nil && userStatus.IsCompleted && cachedChallenge.Model != nil {
 		response.Make = cachedChallenge.Make
