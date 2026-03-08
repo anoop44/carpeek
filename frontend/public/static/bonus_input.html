@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Generation Input Modal - TailLamp Trivia</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                        "neon-cyan": "#00f3ff",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        .glass-panel {
+            background: rgba(16, 22, 34, 0.9);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            box-shadow: 0 0 40px rgba(0, 243, 255, 0.1);
+        }
+        .neon-glow {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+        .neon-border-glow {
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+        .spec-row:not(:last-child) {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark font-display min-h-screen relative overflow-hidden">
+    <div class="fixed inset-0 z-0 flex flex-col blur-md grayscale-[0.8] opacity-30 pointer-events-none">
+        <header class="flex items-center justify-between border-b border-solid border-b-[#232f48] px-40 py-3">
+            <div class="flex items-center gap-4 text-white">
+                <div class="size-4">
+                    <span class="material-symbols-outlined text-primary text-base">rocket_launch</span>
+                </div>
+                <h2 class="text-white text-lg font-bold">TailLamp Trivia</h2>
+            </div>
+        </header>
+        <main class="flex-1 flex flex-col items-center justify-center p-10">
+            <div
+                class="w-96 h-96 bg-[#192233] rounded-xl mb-8 flex items-center justify-center border border-dashed border-[#232f48]">
+                <span class="material-symbols-outlined text-6xl text-[#232f48]">image</span>
+            </div>
+        </main>
+    </div>
+    <div class="fixed inset-0 bg-black/80 z-40 backdrop-blur-sm"></div>
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+            class="glass-panel w-full max-w-[440px] rounded-2xl overflow-hidden relative border-t-2 border-t-neon-cyan/50">
+            <button class="absolute top-4 right-4 text-white/40 hover:text-white transition-colors">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <div class="p-8 flex flex-col items-center">
+                <div class="mb-6 relative">
+                    <div class="absolute inset-0 bg-neon-cyan blur-xl opacity-20"></div>
+                    <div
+                        class="size-16 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30 flex items-center justify-center relative z-10 rotate-45">
+                        <span
+                            class="material-symbols-outlined text-neon-cyan text-3xl neon-glow -rotate-45">search_insights</span>
+                    </div>
+                </div>
+                <h1 class="text-white tracking-[0.15em] text-xl font-bold leading-tight uppercase mb-2 text-center">
+                    Identify Generation
+                </h1>
+                <p class="text-neon-cyan text-[10px] font-bold tracking-[0.2em] uppercase mb-8 opacity-80 text-center">
+                    Precision bonus available: +50 PTS
+                </p>
+                <div class="w-full space-y-6">
+                    <div class="relative group">
+                        <label
+                            class="absolute -top-2.5 left-4 px-2 bg-[#101622] text-[9px] font-bold text-neon-cyan tracking-widest uppercase z-10">
+                            System Input
+                        </label>
+                        <input autofocus=""
+                            class="w-full bg-[#192233]/60 border border-white/10 focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan/30 rounded-lg py-5 px-6 text-white text-lg font-bold placeholder:text-white/10 placeholder:text-xs placeholder:tracking-[0.1em] transition-all outline-none text-center tracking-widest uppercase neon-border-glow"
+                            placeholder="ENTER GENERATION (E.G. MK8)" type="text" />
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 pt-2">
+                        <button
+                            class="group relative flex items-center justify-center gap-3 h-14 bg-primary hover:bg-primary/90 text-white rounded-lg font-extrabold transition-all shadow-[0_4px_20px_rgba(19,91,236,0.4)] text-sm tracking-[0.1em] overflow-hidden">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700">
+                            </div>
+                            <span class="uppercase">Confirm Guess</span>
+                            <span class="material-symbols-outlined text-xl">sensors</span>
+                        </button>
+                        <button
+                            class="h-10 text-white/40 hover:text-white/70 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors">
+                            Return to Mission Summary
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-8 w-full flex items-center justify-between opacity-20">
+                    <div class="h-px flex-1 bg-gradient-to-r from-transparent to-white"></div>
+                    <div class="px-3 flex gap-1">
+                        <div class="size-1 bg-white rounded-full"></div>
+                        <div class="size-1 bg-white rounded-full"></div>
+                        <div class="size-1 bg-white rounded-full"></div>
+                    </div>
+                    <div class="h-px flex-1 bg-gradient-to-l from-transparent to-white"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

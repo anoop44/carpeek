@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Global Leaderboard | Tail Lamp Trivia</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#0a0a0a",
+                        "card-dark": "#111722",
+                        "accent-neon": "#00f2ff",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body {
+            font-family: "Space Grotesk", sans-serif;
+        }
+        .glow-border {
+            box-shadow: 0 0 15px rgba(19, 91, 236, 0.3);
+        }
+        .neon-text-glow {
+            text-shadow: 0 0 8px rgba(0, 242, 255, 0.5);
+        }
+        .scanline {
+            background: linear-gradient(to bottom, transparent 50%, rgba(19, 91, 236, 0.05) 50%);
+            background-size: 100% 4px;
+        }
+        .neon-button-glow {
+            box-shadow: 0 0 12px rgba(0, 242, 255, 0.2);
+        }
+        .neon-button-glow:hover {
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen scanline">
+    <div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+        <div class="layout-container flex h-full grow flex-col">
+            <div
+                class="w-full border-b border-solid border-[#232f48] bg-card-dark/80 backdrop-blur-md sticky top-0 z-50">
+                <div class="max-w-[1200px] mx-auto px-6 py-3 flex items-center justify-between whitespace-nowrap">
+                    <div class="flex items-center gap-4 text-white">
+                        <div class="size-6 text-primary">
+                            <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"></path>
+                            </svg>
+                        </div>
+                        <h2
+                            class="text-white text-xl font-bold leading-tight tracking-[-0.015em] font-display uppercase italic">
+                            Tail Lamp Trivia</h2>
+                    </div>
+                    <div class="flex flex-1 justify-end gap-8">
+                        <div class="hidden md:flex items-center gap-9">
+                            <a class="text-slate-400 hover:text-primary text-sm font-medium leading-normal transition-colors"
+                                href="#">RACE</a>
+                            <a class="text-slate-400 hover:text-primary text-sm font-medium leading-normal transition-colors"
+                                href="#">GARAGE</a>
+                            <a class="text-white border-b-2 border-primary text-sm font-medium leading-normal transition-colors pb-1"
+                                href="#">LEADERBOARD</a>
+                            <a class="text-slate-400 hover:text-primary text-sm font-medium leading-normal transition-colors"
+                                href="#">INTEL</a>
+                        </div>
+                        <button
+                            class="flex min-w-[120px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary hover:bg-primary/80 text-white text-sm font-bold leading-normal tracking-widest transition-all">
+                            <span class="truncate">BACK TO RACE</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <main class="flex-1 flex flex-col items-center py-10 px-6 max-w-[1200px] mx-auto w-full">
+                <div class="w-full flex flex-col items-center">
+                    <h1
+                        class="text-white tracking-[0.2em] text-4xl md:text-5xl font-bold leading-tight px-4 text-center pb-2 pt-6 font-display uppercase">
+                        GLOBAL LEADERBOARD</h1>
+                    <p
+                        class="text-primary text-xs font-bold leading-normal pb-8 tracking-[0.4em] px-4 text-center uppercase">
+                        System Status: Synchronizing Pilot Data</p>
+                </div>
+                <div
+                    class="w-full mb-8 p-5 rounded-xl bg-card-dark border-l-4 border-primary/60 bg-gradient-to-r from-primary/10 to-transparent flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group">
+                    <div class="flex items-center gap-5 relative z-10">
+                        <div
+                            class="flex-shrink-0 size-12 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center text-primary">
+                            <span class="material-symbols-outlined text-3xl">login</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <h3
+                                class="text-white font-bold tracking-widest uppercase text-sm mb-1 flex items-center gap-2">
+                                <span class="size-1.5 rounded-full bg-accent-neon animate-pulse"></span>
+                                Unauthenticated Session
+                            </h3>
+                            <p class="text-slate-400 text-xs font-medium leading-relaxed max-w-2xl">
+                                You are currently viewing the leaderboard as a guest. To archive your challenge
+                                submissions and secure your rank in the global circuit, you must initialize your pilot
+                                profile.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        class="relative z-10 flex items-center gap-3 bg-[#1a2333] border border-accent-neon/50 hover:border-accent-neon text-white px-6 py-3 rounded-lg font-bold text-xs tracking-[0.2em] uppercase transition-all neon-button-glow group/btn min-w-[240px] justify-center">
+                        <svg class="size-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                fill="#4285F4"></path>
+                            <path
+                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                fill="#34A853"></path>
+                            <path
+                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                                fill="#FBBC05"></path>
+                            <path
+                                d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                                fill="#EA4335"></path>
+                        </svg>
+                        <span>Sign in with Google</span>
+                    </button>
+                    <div
+                        class="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-primary/5 to-transparent pointer-events-none">
+                    </div>
+                    <div
+                        class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent">
+                    </div>
+                </div>
+                <div class="w-full max-w-md mb-10">
+                    <div class="flex p-1 rounded-xl bg-card-dark border border-[#232f48]">
+                        <label
+                            class="flex cursor-pointer h-12 grow items-center justify-center overflow-hidden rounded-lg px-2 has-[:checked]:bg-primary has-[:checked]:text-white text-slate-400 text-sm font-bold leading-normal transition-all tracking-widest uppercase">
+                            <span class="truncate">Daily Circuit</span>
+                            <input checked="" class="invisible w-0" name="view-toggle" type="radio" value="daily" />
+                        </label>
+                        <label
+                            class="flex cursor-pointer h-12 grow items-center justify-center overflow-hidden rounded-lg px-2 has-[:checked]:bg-primary has-[:checked]:text-white text-slate-400 text-sm font-bold leading-normal transition-all tracking-widest uppercase">
+                            <span class="truncate">Hall of Fame</span>
+                            <input class="invisible w-0" name="view-toggle" type="radio" value="alltime" />
+                        </label>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mb-10">
+                    <div
+                        class="flex flex-col gap-2 rounded-xl p-6 bg-card-dark border border-[#232f48] relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-2 opacity-10">
+                            <span class="material-symbols-outlined text-6xl">group</span>
+                        </div>
+                        <p class="text-slate-400 text-xs font-bold tracking-widest uppercase leading-normal">Total
+                            Pilots Detected</p>
+                        <p class="text-white tracking-tight text-3xl font-bold leading-tight font-display">42,901</p>
+                    </div>
+                    <div
+                        class="flex flex-col gap-2 rounded-xl p-6 bg-card-dark border border-primary/50 glow-border relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-2 opacity-20 text-primary">
+                            <span class="material-symbols-outlined text-6xl">speed</span>
+                        </div>
+                        <p class="text-primary text-xs font-bold tracking-widest uppercase leading-normal">Active Racers
+                        </p>
+                        <p class="text-white tracking-tight text-3xl font-bold leading-tight font-display">1,042</p>
+                    </div>
+                    <div
+                        class="flex flex-col gap-2 rounded-xl p-6 bg-card-dark border border-[#232f48] relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-2 opacity-10">
+                            <span class="material-symbols-outlined text-6xl">target</span>
+                        </div>
+                        <p class="text-slate-400 text-xs font-bold tracking-widest uppercase leading-normal">System
+                            Precision</p>
+                        <p class="text-white tracking-tight text-3xl font-bold leading-tight font-display">98.4%</p>
+                    </div>
+                </div>
+                <div class="w-full bg-card-dark/40 border border-[#232f48] rounded-xl overflow-hidden backdrop-blur-sm">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-card-dark border-b border-[#232f48]">
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        Rank</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        Pilot Designation</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        Accuracy</th>
+                                    <th
+                                        class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">
+                                        Velocity (ms)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-[#232f48]/50">
+                                <tr class="bg-primary/10 group hover:bg-primary/20 transition-colors">
+                                    <td class="px-6 py-6">
+                                        <div class="flex items-center gap-3">
+                                            <span
+                                                class="text-primary font-black text-2xl font-display italic neon-text-glow">01</span>
+                                            <span class="material-symbols-outlined text-primary"
+                                                style="font-variation-settings: 'FILL' 1">military_tech</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-6">
+                                        <div class="flex items-center gap-3">
+                                            <div class="size-10 rounded-lg bg-gradient-to-br from-primary to-accent-neon flex items-center justify-center text-white"
+                                                data-alt="Abstract geometric avatar for Pilot X-89">
+                                                <span class="material-symbols-outlined">hexagon</span>
+                                            </div>
+                                            <div>
+                                                <p class="text-white font-bold tracking-widest uppercase text-sm">
+                                                    PILOT_X89</p>
+                                                <p class="text-primary text-[10px] font-bold">LEGENDARY STATUS</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-6 font-display font-bold text-lg text-white">100.0%</td>
+                                    <td class="px-6 py-6 font-mono text-primary font-bold text-right">0.842s</td>
+                                </tr>
+                                <tr class="bg-white/5 group hover:bg-white/10 transition-colors">
+                                    <td class="px-6 py-6">
+                                        <div class="flex items-center gap-3">
+                                            <span
+                                                class="text-slate-300 font-black text-2xl font-display italic">02</span>
+                                            <span class="material-symbols-outlined text-slate-400">military_tech</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-6">
+                                        <div class="flex items-center gap-3">
+                                            <div class="size-10 rounded-lg bg-slate-700 flex items-center justify-center text-white"
+                                                data-alt="Abstract geometric avatar for Pilot Vector Quebec">
+                                                <span class="material-symbols-outlined">token</span>
+                                            </div>
+                                            <div>
+                                                <p class="text-white font-bold tracking-widest uppercase text-sm">
+                                                    VECTOR_QUEBEC</p>
+                                                <p class="text-slate-500 text-[10px] font-bold">ELITE RACER</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-6 font-display font-bold text-lg text-white">99.2%</td>
+                                    <td class="px-6 py-6 font-mono text-slate-400 font-bold text-right">1.105s</td>
+                                </tr>
+                                <tr class="bg-white/5 group hover:bg-white/10 transition-colors">
+                                    <td class="px-6 py-6">
+                                        <div class="flex items-center gap-3">
+                                            <span
+                                                class="text-amber-600/80 font-black text-2xl font-display italic">03</span>
+                                            <span
+                                                class="material-symbols-outlined text-amber-700/80">military_tech</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-6">
+                                        <div class="flex items-center gap-3">
+                                            <div class="size-10 rounded-lg bg-slate-800 flex items-center justify-center text-white"
+                                                data-alt="Abstract geometric avatar for Pilot Night Hawk">
+                                                <span class="material-symbols-outlined">grid_view</span>
+                                            </div>
+                                            <div>
+                                                <p class="text-white font-bold tracking-widest uppercase text-sm">
+                                                    NIGHT_HAWK_01</p>
+                                                <p class="text-slate-500 text-[10px] font-bold">PRO PILOT</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-6 font-display font-bold text-lg text-white">98.8%</td>
+                                    <td class="px-6 py-6 font-mono text-slate-400 font-bold text-right">1.219s</td>
+                                </tr>
+                                <tr class="hover:bg-white/5 transition-colors">
+                                    <td class="px-6 py-5 text-slate-500 font-bold font-display">04</td>
+                                    <td class="px-6 py-5">
+                                        <p class="text-slate-300 font-medium tracking-wider uppercase text-sm">
+                                            CYBER_DRIFT</p>
+                                    </td>
+                                    <td class="px-6 py-5 font-display text-slate-300">97.5%</td>
+                                    <td class="px-6 py-5 font-mono text-slate-500 text-right">1.455s</td>
+                                </tr>
+                                <tr class="hover:bg-white/5 transition-colors">
+                                    <td class="px-6 py-5 text-slate-500 font-bold font-display">05</td>
+                                    <td class="px-6 py-5">
+                                        <p class="text-slate-300 font-medium tracking-wider uppercase text-sm">
+                                            BRAKE_LIGHT_PRO</p>
+                                    </td>
+                                    <td class="px-6 py-5 font-display text-slate-300">97.1%</td>
+                                    <td class="px-6 py-5 font-mono text-slate-500 text-right">1.502s</td>
+                                </tr>
+                                <tr class="bg-primary/20 border-y-2 border-primary/40 relative">
+                                    <td class="px-6 py-5 text-primary font-bold font-display">1,042</td>
+                                    <td class="px-6 py-5 flex items-center gap-2">
+                                        <p class="text-white font-bold tracking-wider uppercase text-sm">YOU
+                                            (PILOT_GUEST)</p>
+                                        <span
+                                            class="px-2 py-0.5 rounded bg-primary text-[10px] text-white font-black uppercase">CURRENT</span>
+                                    </td>
+                                    <td class="px-6 py-5 font-display text-white">82.4%</td>
+                                    <td class="px-6 py-5 font-mono text-white font-bold text-right">2.890s</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div
+                    class="mt-8 flex flex-col md:flex-row items-center justify-between w-full text-slate-500 text-xs tracking-widest font-bold uppercase gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-block size-2 rounded-full bg-green-500 animate-pulse"></span>
+                        LIVE NETWORK DATA UPDATED 4s AGO
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <a class="hover:text-primary transition-colors" href="#">PRIVACY_PROTOCOL</a>
+                        <a class="hover:text-primary transition-colors" href="#">CREDITS</a>
+                        <span class="text-slate-700">v2.4.0-STABLE</span>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+</body>
+
+</html>

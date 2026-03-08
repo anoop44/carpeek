@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #135bec;
+  --color-accent-cyan: #00f2ff;
+  --color-accent-purple: #7000ff;
+  --color-accent-neon: #00f2ff;
+  --color-neon-cyan: #00f3ff;
+  --color-card-dark: #111722;
+  --color-background-light: #f6f6f8;
+  --color-background-dark: #0a0c12;
+
+  --font-display: var(--font-space-grotesk), sans-serif;
+
+  --radius-default: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+}
+
+:root {
+  --font-space-grotesk: 'Space Grotesk', sans-serif;
+}
+
+body {
+  font-family: var(--font-space-grotesk);
+}
+
+.techno-glow {
+  box-shadow: 0 0 15px rgba(19, 91, 236, 0.3);
+}
+
+.neon-border {
+  border: 1px solid rgba(0, 242, 255, 0.2);
+}
+
+.glass-panel {
+  background: rgba(25, 34, 51, 0.7);
+  backdrop-filter: blur(12px);
+}
+
+/* Custom scrollbar for dark mode */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #0a0c12;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #135bec;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #00f2ff;
+}
+
+/* Leaderboard Effects */
+.glow-border {
+  box-shadow: 0 0 15px rgba(19, 91, 236, 0.3);
+}
+
+.neon-text-glow {
+  text-shadow: 0 0 8px rgba(0, 242, 255, 0.5);
+}
+
+.scanline {
+  background: linear-gradient(to bottom, transparent 50%, rgba(19, 91, 236, 0.05) 50%);
+  background-size: 100% 4px;
+}
+
+.neon-button-glow {
+  box-shadow: 0 0 12px rgba(0, 242, 255, 0.2);
+}
+
+.neon-button-glow:hover {
+  box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+}
+
+/* Success Popup Styles */
+.glass-panel {
+  background: rgba(16, 22, 34, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(19, 91, 236, 0.3);
+  box-shadow: 0 0 40px rgba(19, 91, 236, 0.1);
+}
+
+.neon-glow {
+  text-shadow: 0 0 15px rgba(0, 243, 255, 0.7), 0 0 30px rgba(0, 243, 255, 0.3);
+}
+
+.confetti-shape {
+  position: absolute;
+}
+
+.spec-row:not(:last-child) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.popup-input::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.score-display-bg {
+  background: radial-gradient(circle at center, rgba(0, 243, 255, 0.1) 0%, transparent 70%);
+}
+
+.neon-border-glow {
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+}
+
+/* Animated gradient border for sign-in button */
+@keyframes gradient-x {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient-x {
+  background-size: 200% 200%;
+  animation: gradient-x 3s ease infinite;
+}
+
+/* Popup animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out;
+}
+
+/* Mobile hamburger drawer animation */
+@keyframes drawer-in {
+  from {
+    opacity: 0;
+    transform: scaleY(0.93) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
