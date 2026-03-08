@@ -680,6 +680,9 @@ export default function GameInterface() {
                             <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
                             <Link href="/terms" className="hover:text-primary transition-colors">Terms and Conditions</Link>
                         </div>
+                        <span className="text-slate-700 tracking-normal mt-2 opacity-50">
+                            {process.env.NEXT_PUBLIC_APP_VERSION || 'v1.0.0-LOCAL'}
+                        </span>
                     </div>
                 </footer>
             </main>

@@ -96,9 +96,29 @@ for var in "${REQUIRED_VARS[@]}"; do
     fi
 done
 
+# ── VERSION CALCULATION ──
+if [ -f "$PROJECT_ROOT/.version" ]; then
+    # Load MAJOR and MINOR from .version file
+    while IFS='=' read -r key value; do
+        export "$key=$value"
+    done < "$PROJECT_ROOT/.version"
+    
+    # Calculate PATCH as the total number of commits
+    PATCH=$(git rev-list --count HEAD)
+    # Get short commit SHA
+    COMMIT_SHA=$(git rev-parse --short HEAD)
+    
+    export NEXT_PUBLIC_APP_VERSION="${TAG:-STABLE} - $MAJOR.$MINOR.$PATCH ($COMMIT_SHA)"
+    echo "Calculated version: $NEXT_PUBLIC_APP_VERSION"
+else
+    export NEXT_PUBLIC_APP_VERSION="0.0.0 (no-git)"
+    echo "Warning: .version file not found, using fallback version."
+fi
+
 # Display loaded environment variables (for debugging)
 echo "Environment variables loaded:
 - ENV: $ENV
+- VERSION: $NEXT_PUBLIC_APP_VERSION
 - DB_PASSWORD: ${DB_PASSWORD:0:4}... (masked)
 - DB_DB: $DB_DB
 - DB_USER: $DB_USER

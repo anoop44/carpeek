@@ -555,7 +555,9 @@ function LeaderboardContent() {
                             <div className="flex items-center gap-8">
                                 <Link className="hover:text-primary transition-colors" href="/privacy">Privacy Policy</Link>
                                 <Link className="hover:text-primary transition-colors" href="/terms">Terms and Conditions</Link>
-                                <span className="text-slate-800 tracking-normal">STABLE-v2.4.0</span>
+                                <span className="text-slate-800 tracking-normal uppercase">
+                                    {process.env.NEXT_PUBLIC_APP_VERSION || 'v1.0.0-LOCAL'}
+                                </span>
                             </div>
                         </div>
                     </main>
