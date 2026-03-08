@@ -39,7 +39,9 @@ export default function BannerAd({
 
     useEffect(() => {
         // Only run on client when the global adsbygoogle is available
-        if (typeof window === 'undefined' || !clientId) return;
+        if (typeof window === 'undefined' || !clientId) {
+            return;
+        }
 
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

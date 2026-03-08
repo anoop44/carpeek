@@ -103,7 +103,9 @@ echo "Environment variables loaded:
 - DB_DB: $DB_DB
 - DB_USER: $DB_USER
 - DATABASE_URL: ${DATABASE_URL:-not set}
-- NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-not set}"
+- NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-not set}
+- NEXT_PUBLIC_ADSENSE_CLIENT_ID: ${NEXT_PUBLIC_ADSENSE_CLIENT_ID:-not set}
+- NEXT_PUBLIC_ADSENSE_SLOT_HOME_TOP: ${NEXT_PUBLIC_ADSENSE_SLOT_HOME_TOP:-not set}"
 
 # Clean up any existing containers (preserve volumes/data)
 echo "Cleaning up existing containers..."

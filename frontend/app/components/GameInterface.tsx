@@ -9,6 +9,7 @@ import ChallengeOverPopup from './ChallengeOverPopup';
 import HowToPlayPopup from './HowToPlayPopup';
 import ImageModal from './ImageModal';
 import BannerAd from './BannerAd';
+import Link from 'next/link';
 
 interface Make {
     id: number;
@@ -673,8 +674,12 @@ export default function GameInterface() {
                             <span className="text-[10px] uppercase tracking-widest text-slate-500">Total Bonus Points</span>
                         </div>
                     </div>
-                    <div className="pt-8 text-slate-600 text-[10px] uppercase tracking-widest">
-                        Daily Reset in {formatCountdown(secondsUntilReset)}
+                    <div className="pt-16 pb-12 text-slate-600 text-[10px] uppercase tracking-[0.3em] font-black flex flex-col items-center gap-6 border-t border-white/5">
+                        <span>Daily Reset in {formatCountdown(secondsUntilReset)}</span>
+                        <div className="flex gap-8">
+                            <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+                            <Link href="/terms" className="hover:text-primary transition-colors">Terms and Conditions</Link>
+                        </div>
                     </div>
                 </footer>
             </main>

@@ -15,6 +15,13 @@ export const metadata: Metadata = {
 
 const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
+// Server-side logging for container verification
+if (adsenseClientId) {
+  console.log(`[Configuration] AdSense Client ID detected: ${adsenseClientId}`);
+} else {
+  console.log('[Configuration] AdSense Client ID not found. Ads will be disabled.');
+}
+
 export default function RootLayout({
   children,
 }: {

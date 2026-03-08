@@ -547,15 +547,15 @@ function LeaderboardContent() {
                             </div>
                         </div>
 
-                        <div className="mt-8 flex flex-col md:flex-row items-center justify-between w-full text-slate-500 text-xs tracking-widest font-bold uppercase gap-4">
+                        <div className="mt-20 flex flex-col md:flex-row items-center justify-between w-full text-slate-500 text-[10px] tracking-[0.3em] font-black uppercase gap-4 border-t border-white/5 pt-8 pb-12">
                             <div className="flex items-center gap-2">
-                                <span className="inline-block size-2 rounded-full bg-green-500 animate-pulse"></span>
-                                LIVE NETWORK DATA UPDATED RECENTLY
+                                <span className="inline-block size-1.5 rounded-full bg-green-500 animate-pulse ring-4 ring-green-500/5"></span>
+                                LIVE NETWORK DATA
                             </div>
-                            <div className="flex items-center gap-6">
-                                <a className="hover:text-primary transition-colors" href="#">PRIVACY_PROTOCOL</a>
-                                <a className="hover:text-primary transition-colors" href="#">CREDITS</a>
-                                <span className="text-slate-700">v2.4.0-STABLE</span>
+                            <div className="flex items-center gap-8">
+                                <Link className="hover:text-primary transition-colors" href="/privacy">Privacy Policy</Link>
+                                <Link className="hover:text-primary transition-colors" href="/terms">Terms and Conditions</Link>
+                                <span className="text-slate-800 tracking-normal">STABLE-v2.4.0</span>
                             </div>
                         </div>
                     </main>
