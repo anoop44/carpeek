@@ -365,14 +365,14 @@ func GetModelsByMakeID(db *sqlx.DB, makeID int) ([]models.GroupedModel, error) {
 // GetOrCreateUser retrieves a user by anonymous ID or creates a new one
 func GetOrCreateUser(db *sqlx.DB, anonymousID string) (*models.User, error) {
 	var user models.User
-	query := `SELECT id, anonymous_id, google_id, email, display_name, profile_picture_url, is_linked, created_at, updated_at FROM users WHERE anonymous_id = $1`
+	query := `SELECT id, anonymous_id, google_id, email, display_name, profile_picture_url, is_linked, is_subscriber, subscription_status, subscription_product_id, subscription_expires_at, created_at, updated_at FROM users WHERE anonymous_id = $1`
 	err := db.Get(&user, query, anonymousID)
 	if err == nil {
 		return &user, nil
 	}
 
 	// Create new user if not found
-	insertQuery := `INSERT INTO users (anonymous_id) VALUES ($1) RETURNING id, anonymous_id, google_id, email, display_name, profile_picture_url, is_linked, created_at, updated_at`
+	insertQuery := `INSERT INTO users (anonymous_id) VALUES ($1) RETURNING id, anonymous_id, google_id, email, display_name, profile_picture_url, is_linked, is_subscriber, subscription_status, subscription_product_id, subscription_expires_at, created_at, updated_at`
 	err = db.QueryRowx(insertQuery, anonymousID).StructScan(&user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %v", err)
@@ -384,7 +384,7 @@ func GetOrCreateUser(db *sqlx.DB, anonymousID string) (*models.User, error) {
 // GetUserByAnonymousID retrieves a user by anonymous ID without creating one
 func GetUserByAnonymousID(db *sqlx.DB, anonymousID string) (*models.User, error) {
 	var user models.User
-	query := `SELECT id, anonymous_id, google_id, email, display_name, profile_picture_url, is_linked, created_at, updated_at FROM users WHERE anonymous_id = $1`
+	query := `SELECT id, anonymous_id, google_id, email, display_name, profile_picture_url, is_linked, is_subscriber, subscription_status, subscription_product_id, subscription_expires_at, created_at, updated_at FROM users WHERE anonymous_id = $1`
 	err := db.Get(&user, query, anonymousID)
 	if err != nil {
 		return nil, err
@@ -395,7 +395,7 @@ func GetUserByAnonymousID(db *sqlx.DB, anonymousID string) (*models.User, error)
 // GetUserByGoogleID retrieves a user by their Google ID
 func GetUserByGoogleID(db *sqlx.DB, googleID string) (*models.User, error) {
 	var user models.User
-	query := `SELECT id, anonymous_id, google_id, email, display_name, profile_picture_url, is_linked, created_at, updated_at FROM users WHERE google_id = $1`
+	query := `SELECT id, anonymous_id, google_id, email, display_name, profile_picture_url, is_linked, is_subscriber, subscription_status, subscription_product_id, subscription_expires_at, created_at, updated_at FROM users WHERE google_id = $1`
 	err := db.Get(&user, query, googleID)
 	if err != nil {
 		return nil, err
@@ -442,7 +442,7 @@ func LinkGoogleAccount(db *sqlx.DB, anonymousID string, googleID string, email s
 			is_linked = TRUE, 
 			updated_at = CURRENT_TIMESTAMP 
 		WHERE id = $1 
-		RETURNING id, anonymous_id, google_id, email, display_name, profile_picture_url, is_linked, created_at, updated_at
+		RETURNING id, anonymous_id, google_id, email, display_name, profile_picture_url, is_linked, is_subscriber, subscription_status, subscription_product_id, subscription_expires_at, created_at, updated_at
 	`
 	var user models.User
 	err = tx.QueryRowx(updateQuery, currentUserID, googleID, email, name, picture).StructScan(&user)
@@ -1185,5 +1185,41 @@ func GetChallengeStats(db *sqlx.DB, challengeID int) (*models.ChallengeStats, er
 	}
 
 	return stats, nil
+}
+
+// ---- Subscription Queries ----
+
+// UpdateUserSubscription updates the subscription status for a user identified by anonymous_id
+// (anonymous_id is used as the RevenueCat app_user_id)
+func UpdateUserSubscription(db *sqlx.DB, anonymousID string, productID string, status string, expiresAt *time.Time) error {
+	isActive := status == "active" || status == "trialing"
+	_, err := db.Exec(`
+		UPDATE users 
+		SET is_subscriber = $2,
+			subscription_status = $3,
+			subscription_product_id = $4,
+			subscription_expires_at = $5,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE anonymous_id = $1`,
+		anonymousID, isActive, status, productID, expiresAt)
+	return err
+}
+
+// DeactivateUserSubscription marks a user's subscription as expired
+func DeactivateUserSubscription(db *sqlx.DB, anonymousID string) error {
+	_, err := db.Exec(`
+		UPDATE users 
+		SET is_subscriber = FALSE,
+			subscription_status = 'expired',
+			updated_at = CURRENT_TIMESTAMP
+		WHERE anonymous_id = $1`, anonymousID)
+	return err
+}
+
+// LogSubscriptionEvent records a subscription event for audit purposes
+func LogSubscriptionEvent(db *sqlx.DB, userID int, eventType string, rcEventID string, details string) error {
+	_, err := db.Exec(`INSERT INTO subscription_events (user_id, event_type, rc_event_id, details) VALUES ($1, $2, $3, $4)`,
+		userID, eventType, rcEventID, details)
+	return err
 }
 

@@ -2,10 +2,12 @@
 
 import { useState, useEffect, Suspense, useRef } from 'react';
 import Link from 'next/link';
-import { GoogleOAuthProvider, GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { jwtDecode } from "jwt-decode";
 import AppHeader from '../components/AppHeader';
 import BannerAd from '../components/BannerAd';
+import { useAuth } from '../components/AuthProvider';
+import GoogleLoginButton from '../components/GoogleLoginButton';
 
 interface LeaderboardEntry {
     rank: number;
@@ -39,104 +41,19 @@ function LeaderboardContent() {
     const [isClient, setIsClient] = useState(false);
     const [stats, setStats] = useState<{ players_today: number; total_players: number; average_accuracy: number; global_average_accuracy: number; total_bonus_points: number } | null>(null);
     const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [sessionToken, setSessionToken] = useState<string>('');
-    const sessionTokenRef = useRef<string>('');
 
-    // Sync ref with state
-    useEffect(() => {
-        sessionTokenRef.current = sessionToken;
-    }, [sessionToken]);
-
-    const BROWSER_SIGNATURE_KEY = 'carpeek_browser_signature';
-
-    const getBrowserSignature = () => {
-        let sig = localStorage.getItem(BROWSER_SIGNATURE_KEY);
-        if (!sig) {
-            sig = window.crypto.randomUUID();
-            localStorage.setItem(BROWSER_SIGNATURE_KEY, sig);
-        }
-        return sig;
-    };
-
-    const getHeaders = () => {
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-        };
-        if (sessionTokenRef.current) {
-            headers['Authorization'] = `Bearer ${sessionTokenRef.current}`;
-        }
-        return headers;
-    };
-
-    const initSession = async () => {
-        try {
-            const signature = getBrowserSignature();
-            const res = await fetch('/api/auth/session', {
-                headers: { 'X-Browser-Signature': signature }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.token) {
-                    sessionTokenRef.current = data.token;
-                    setSessionToken(data.token);
-                    return data.token;
-                }
-            }
-        } catch (e) {
-            console.error("Session init failed", e);
-        }
-        return null;
-    };
-
-    const managedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-        const currentHeaders = getHeaders();
-        let response = await fetch(url, {
-            ...options,
-            headers: {
-                ...currentHeaders,
-                ...(options.headers || {}),
-            },
-        });
-
-        if (response.status === 401) {
-            const newToken = await initSession();
-            if (newToken) {
-                response = await fetch(url, {
-                    ...options,
-                    headers: {
-                        ...getHeaders(),
-                        'Authorization': `Bearer ${newToken}`,
-                        ...(options.headers || {}),
-                    },
-                });
-            }
-        }
-        return response;
-    };
+    const { isLoggedIn, managedFetch, isLoading: authLoading } = useAuth();
 
 
 
     useEffect(() => {
         setIsClient(true);
-        const storedUserId = localStorage.getItem(BROWSER_SIGNATURE_KEY);
-        const storedEmail = localStorage.getItem('autocorrect_user_email');
+        const storedUserId = localStorage.getItem('carpeek_browser_signature');
         if (storedUserId) {
             setUserId(storedUserId);
         }
-        if (storedEmail) {
-            setIsLoggedIn(true);
-        }
-        console.log("Google Client ID:", process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
     }, []);
-
-    const bootstrap = async () => {
-        await initSession();
-        fetchData();
-        fetchStats();
-    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -186,54 +103,16 @@ function LeaderboardContent() {
     };
 
     useEffect(() => {
-        if (isClient) {
-            bootstrap();
+        if (isClient && !authLoading) {
+            fetchData();
+            fetchStats();
         }
-    }, [viewMode, isClient]);
+    }, [viewMode, isClient, authLoading]);
 
-    const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-        if (!credentialResponse.credential) return;
 
-        try {
-            const signature = getBrowserSignature();
-            const response = await fetch('/api/auth/google', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    id_token: credentialResponse.credential,
-                    anonymous_id: signature
-                }),
-            });
-
-            if (response.ok) {
-                const user = await response.json();
-                if (user.anonymous_id) {
-                    localStorage.setItem(BROWSER_SIGNATURE_KEY, user.anonymous_id);
-                    setUserId(user.anonymous_id);
-                }
-                if (user.email) {
-                    localStorage.setItem('autocorrect_user_email', user.email);
-                    setIsLoggedIn(true);
-                }
-                // If token returned, save it
-                if (user.auth_token) {
-                    setSessionToken(user.auth_token);
-                }
-                fetchData(); // Refresh leaderboard
-            } else {
-                console.error("Login failed");
-            }
-        } catch (error) {
-            console.error("Login error", error);
-            setError('Failed to sign in with Google');
-        }
-    };
 
     return (
-        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
-            <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden scanline bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
+        <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden scanline bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
                 {/* Error Notification */}
                 {error && (
                     <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-4">
@@ -284,18 +163,9 @@ function LeaderboardContent() {
                                 <div className="relative z-10 mt-2">
                                     <div className="rounded-full p-[2px] bg-gradient-to-r from-primary via-accent-neon to-primary animate-gradient-x">
                                         <div className="rounded-full bg-card-dark px-1 py-1">
-                                            <GoogleLogin
-                                                onSuccess={handleGoogleSuccess}
-                                                onError={() => {
-                                                    console.log('Login Failed');
-                                                }}
-                                                theme="filled_black"
-                                                text="signin_with"
-                                                shape="pill"
-                                                size="large"
-                                                width="300"
-                                                logo_alignment="left"
-                                            />
+                                            <div className="mt-2 w-full flex justify-center">
+                                                <GoogleLoginButton />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -563,7 +433,6 @@ function LeaderboardContent() {
                     </main>
                 </div>
             </div>
-        </GoogleOAuthProvider>
     );
 }
 

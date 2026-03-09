@@ -10,6 +10,7 @@ import HowToPlayPopup from './HowToPlayPopup';
 import ImageModal from './ImageModal';
 import BannerAd from './BannerAd';
 import Link from 'next/link';
+import { useAuth } from './AuthProvider';
 
 interface Make {
     id: number;
@@ -133,25 +134,8 @@ export default function GameInterface() {
 
     const [secondsUntilReset, setSecondsUntilReset] = useState<number | null>(null);
     const [stats, setStats] = useState<ChallengeStats | null>(null);
-    const [sessionToken, setSessionToken] = useState<string>('');
-    const sessionTokenRef = useRef<string>('');
 
-    // Sync ref with state
-    useEffect(() => {
-        sessionTokenRef.current = sessionToken;
-    }, [sessionToken]);
-
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const BROWSER_SIGNATURE_KEY = 'carpeek_browser_signature';
-
-    const getBrowserSignature = () => {
-        let sig = localStorage.getItem(BROWSER_SIGNATURE_KEY);
-        if (!sig) {
-            sig = window.crypto.randomUUID();
-            localStorage.setItem(BROWSER_SIGNATURE_KEY, sig);
-        }
-        return sig;
-    };
+    const { managedFetch, isLoading: authLoading, sessionToken } = useAuth();
 
     useEffect(() => {
         if (challenge?.next_challenge_seconds) {
@@ -175,71 +159,6 @@ export default function GameInterface() {
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
 
-    const getHeaders = () => {
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-        };
-        if (sessionTokenRef.current) {
-            headers['Authorization'] = `Bearer ${sessionTokenRef.current}`;
-        }
-        return headers;
-    };
-
-    const updateIdentity = (res: Response) => {
-        // No longer using X-User-ID header for identity, relying on JWT and Signature
-    };
-
-    const initSession = async () => {
-        try {
-            const signature = getBrowserSignature();
-            const res = await fetch('/api/auth/session', {
-                headers: { 'X-Browser-Signature': signature }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.token) {
-                    sessionTokenRef.current = data.token;
-                    setSessionToken(data.token);
-                    return data.token;
-                }
-            }
-        } catch (e) {
-            console.error("Session init failed", e);
-        }
-        return null;
-    };
-
-    const managedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-        const currentHeaders = getHeaders();
-        let response = await fetch(url, {
-            ...options,
-            headers: {
-                ...currentHeaders,
-                ...(options.headers || {}),
-            },
-        });
-
-        // 401 = Unauthorized (Token invalid/expired)
-        if (response.status === 401) {
-            const newToken = await initSession();
-            if (newToken) {
-                // Retry with new token
-                response = await fetch(url, {
-                    ...options,
-                    headers: {
-                        ...getHeaders(), // Refresh headers with new session token
-                        'Authorization': `Bearer ${newToken}`,
-                        ...(options.headers || {}),
-                    },
-                });
-            }
-        }
-
-        updateIdentity(response);
-        return response;
-    };
-
     useEffect(() => {
         const checkFirstVisit = () => {
             const hasSeen = localStorage.getItem('autocorrect_has_seen_how_to_play');
@@ -248,15 +167,12 @@ export default function GameInterface() {
             }
         };
 
-        const bootstrap = async () => {
-            await initSession();
+        if (!authLoading) {
             fetchChallenge();
             fetchMakes();
-        };
-
-        bootstrap();
-        checkFirstVisit();
-    }, []);
+            checkFirstVisit();
+        }
+    }, [authLoading]);
 
     useEffect(() => {
         if (selectedMake) {
@@ -447,9 +363,8 @@ export default function GameInterface() {
                         attempt_history: result.attempt_history || challenge?.attempt_history,
                         model_known_for: result.solution.known_for,
                         next_challenge_seconds: result.next_challenge_seconds || challenge?.next_challenge_seconds,
-                        streak_stats: result.streak_stats || challenge?.streak_stats
                     }}
-                    sessionToken={sessionToken}
+                    sessionToken={sessionToken || ''}
                     managedFetch={managedFetch}
                     onUpdatePoints={() => challenge && fetchChallengeStats(challenge.id)}
                 />

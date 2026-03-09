@@ -49,6 +49,10 @@ func NewRouter() http.Handler {
 	api.Handle("/challenge/submit", lowRate(auth(http.HandlerFunc(handlers.SubmitChallengeHandler)))).Methods("POST")
 	api.Handle("/challenge/bonus/submit", lowRate(auth(http.HandlerFunc(handlers.SubmitBonusHandler)))).Methods("POST")
 
+	// Subscription
+	api.Handle("/subscription/status", mediumRate(auth(http.HandlerFunc(handlers.GetSubscriptionStatusHandler)))).Methods("GET")
+	api.Handle("/subscription/webhook", http.HandlerFunc(handlers.RevenueCatWebhookHandler)).Methods("POST")
+
 	// Static files (images)
 	// Apply global rate limit to images? Maybe not needed for static, but good practice if serving directly
 	// Let's rely on Nginx/CDN in prod, but here standard handler

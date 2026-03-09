@@ -24,9 +24,11 @@ type GoogleTokenInfo struct {
 
 // SessionResponse represents the response for session creation
 type SessionResponse struct {
-	Token     string `json:"token"`
-	ExpiresIn int    `json:"expires_in"` // seconds
-	UserID    string `json:"user_id"`
+	Token        string `json:"token"`
+	ExpiresIn    int    `json:"expires_in"` // seconds
+	UserID       string `json:"user_id"`
+	IsSubscriber bool   `json:"is_subscriber"`
+	IsLoggedIn   bool   `json:"is_logged_in"`
 }
 
 // GetSessionHandler handles the request to get a short-lived session token
@@ -56,9 +58,11 @@ func GetSessionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := SessionResponse{
-		Token:     token,
-		ExpiresIn: 300, // 5 minutes
-		UserID:    user.AnonymousID,
+		Token:        token,
+		ExpiresIn:    300, // 5 minutes
+		UserID:       user.AnonymousID,
+		IsSubscriber: user.IsSubscriber,
+		IsLoggedIn:   user.IsLinked,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

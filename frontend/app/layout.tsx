@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Space_Grotesk } from 'next/font/google'
+import { AuthProvider } from './components/AuthProvider'
 import './globals.css'
 
 const spaceGrotesk = Space_Grotesk({
@@ -44,7 +45,9 @@ export default function RootLayout({
         )}
       </head>
       <body className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen">
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   )

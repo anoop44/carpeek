@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useAuth } from './AuthProvider';
+import Link from 'next/link';
 
 interface BannerAdProps {
     /**
@@ -36,10 +38,11 @@ export default function BannerAd({
 }: BannerAdProps) {
     const adRef = useRef<HTMLModElement>(null);
     const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
+    const { isSubscriber, isLoading } = useAuth();
 
     useEffect(() => {
-        // Only run on client when the global adsbygoogle is available
-        if (typeof window === 'undefined' || !clientId) {
+        // Only run on client when the global adsbygoogle is available and user is NOT a subscriber
+        if (typeof window === 'undefined' || !clientId || isLoading || isSubscriber) {
             return;
         }
 
@@ -49,21 +52,31 @@ export default function BannerAd({
         } catch (e) {
             console.error('[BannerAd] adsbygoogle push error:', e);
         }
-    }, [clientId]);
+    }, [clientId, isSubscriber, isLoading]);
 
-    // If no client ID configured, render nothing so the layout stays clean
-    if (!clientId) return null;
+    // If no client ID configured, or if waiting for sub status, or if user is subscriber, render nothing
+    if (!clientId || isLoading || isSubscriber) return null;
 
     return (
         <div
-            className={`w-full flex flex-col items-center gap-1 ${className}`}
+            className={`w-full flex flex-col items-center gap-1.5 ${className}`}
             aria-label="Sponsored content"
         >
-            {label && (
-                <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-slate-600 dark:text-slate-700 select-none">
-                    {label}
-                </p>
-            )}
+            <div className="flex w-full max-w-[970px] justify-between items-end px-2">
+                {label && (
+                    <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-slate-500 select-none">
+                        {label}
+                    </p>
+                )}
+                <Link 
+                    href="/subscribe" 
+                    className="text-[10px] text-primary/80 hover:text-primary font-bold uppercase tracking-wider transition-colors drop-shadow-sm flex items-center gap-1"
+                >
+                    Hide Ads
+                    <span className="material-symbols-outlined text-[10px]" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
+                </Link>
+            </div>
+            
             {/* Muted surface that blends with the page background */}
             <div className="w-full max-w-[970px] rounded-xl overflow-hidden bg-card-dark/30 border border-white/[0.04] backdrop-blur-sm">
                 <ins

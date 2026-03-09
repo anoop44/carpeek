@@ -30,15 +30,19 @@ type Model struct {
 
 // User represents a user (anonymous or authenticated)
 type User struct {
-	ID                int       `json:"id" db:"id"`
-	AnonymousID       string    `json:"anonymous_id" db:"anonymous_id"`
-	GoogleID          *string   `json:"google_id,omitempty" db:"google_id"`
-	Email             *string   `json:"email,omitempty" db:"email"`
-	DisplayName       *string   `json:"display_name,omitempty" db:"display_name"`
-	ProfilePictureURL *string   `json:"profile_picture_url,omitempty" db:"profile_picture_url"`
-	IsLinked          bool      `json:"is_linked" db:"is_linked"`
-	CreatedAt         time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at" db:"updated_at"`
+	ID                    int        `json:"id" db:"id"`
+	AnonymousID           string     `json:"anonymous_id" db:"anonymous_id"`
+	GoogleID              *string    `json:"google_id,omitempty" db:"google_id"`
+	Email                 *string    `json:"email,omitempty" db:"email"`
+	DisplayName           *string    `json:"display_name,omitempty" db:"display_name"`
+	ProfilePictureURL     *string    `json:"profile_picture_url,omitempty" db:"profile_picture_url"`
+	IsLinked              bool       `json:"is_linked" db:"is_linked"`
+	IsSubscriber          bool       `json:"is_subscriber" db:"is_subscriber"`
+	SubscriptionStatus    *string    `json:"subscription_status,omitempty" db:"subscription_status"`
+	SubscriptionProductID *string    `json:"subscription_product_id,omitempty" db:"subscription_product_id"`
+	SubscriptionExpiresAt *time.Time `json:"subscription_expires_at,omitempty" db:"subscription_expires_at"`
+	CreatedAt             time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // GroupedModel represents a car model with multiple possible IDs
@@ -245,4 +249,11 @@ type ChallengeStats struct {
 	AverageAccuracy       float64 `json:"average_accuracy"`
 	GlobalAverageAccuracy float64 `json:"global_average_accuracy"`
 	TotalBonusPoints      float64 `json:"total_bonus_points"`
+}
+
+// SubscriptionStatusResponse represents the subscription status for a user
+type SubscriptionStatusResponse struct {
+	IsSubscriber       bool    `json:"is_subscriber"`
+	SubscriptionStatus *string `json:"subscription_status,omitempty"`
+	ExpiresAt          *string `json:"expires_at,omitempty"`
 }

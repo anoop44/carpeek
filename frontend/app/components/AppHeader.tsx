@@ -61,6 +61,13 @@ export default function AppHeader({ streakCount, onStreakClick, onHelpClick }: A
                             >
                                 Leaderboard
                             </Link>
+                            <Link
+                                className={`text-sm font-medium transition-colors flex items-center gap-1 ${isActive('/settings') ? 'text-white border-b-2 border-primary pb-0.5' : 'hover:text-primary'}`}
+                                href="/settings"
+                                title="Settings"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">settings</span>
+                            </Link>
                         </nav>
                         {streakCount !== undefined && (
                             <button
@@ -190,6 +197,26 @@ export default function AppHeader({ streakCount, onStreakClick, onHelpClick }: A
                             </span>
                             Leaderboard
                             {isActive('/leaderboard') && (
+                                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            )}
+                        </Link>
+
+                        <Link
+                            href="/settings"
+                            onClick={closeMenu}
+                            className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold uppercase tracking-widest transition-colors ${isActive('/settings')
+                                    ? 'bg-primary/20 text-primary border border-primary/30'
+                                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                                }`}
+                        >
+                            <span
+                                className="material-symbols-outlined"
+                                style={{ fontVariationSettings: isActive('/settings') ? "'FILL' 1" : "'FILL' 0", fontSize: '20px' }}
+                            >
+                                settings
+                            </span>
+                            Settings
+                            {isActive('/settings') && (
                                 <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                             )}
                         </Link>
