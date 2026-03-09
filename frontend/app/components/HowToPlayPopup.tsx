@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 
 interface HowToPlayPopupProps {
     isOpen: boolean;
@@ -118,8 +118,8 @@ export default function HowToPlayPopup({ isOpen, onClose }: HowToPlayPopupProps)
                                 After a successful guess, you might be asked <strong>Generation</strong> and <strong>Year</strong> bonus questions. These are not available for every challenge.
                             </p>
                             <ul className="text-slate-300 text-sm md:text-base leading-relaxed space-y-2 list-disc pl-5 marker:text-primary">
-                                <li><strong>Generation:</strong> The specific platform or iteration (e.g., Mk7, E46). For numbered generations, use the full word (e.g., <em>First</em>, <em>Second</em>) without adding "gen" or "generation".</li>
-                                <li><strong>Production Year:</strong> Guessing <em>any</em> year within the model's production range (e.g., 2015–2020) is considered correct!</li>
+                                <li><strong>Generation:</strong> The specific platform or iteration (e.g., Mk7, E46). For numbered generations, use the full word (e.g., <em>First</em>, <em>Second</em>) without adding &quot;gen&quot; or &quot;generation&quot;.</li>
+                                <li><strong>Production Year:</strong> Guessing <em>any</em> year within the model&apos;s production range (e.g., 2015–2020) is considered correct!</li>
                             </ul>
                         </div>
 
@@ -163,7 +163,7 @@ export default function HowToPlayPopup({ isOpen, onClose }: HowToPlayPopupProps)
                             onClick={onClose}
                             className="w-full py-3.5 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm tracking-widest uppercase transition-all"
                         >
-                            Got It, Let's Play!
+                            Got It, Let&apos;s Play!
                         </button>
                     </div>
                 </div>

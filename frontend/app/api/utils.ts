@@ -5,7 +5,7 @@ export async function proxyToBackend(
     path: string,
     options: {
         method?: string;
-        body?: any;
+        body?: unknown;
         headers?: Record<string, string>;
     } = {}
 ) {
