@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import BonusInputPopup from './BonusInputPopup';
 import StreakMeter from './StreakMeter';
@@ -64,6 +64,35 @@ export default function SuccessPopup({ isOpen, onClose, challengeId, data, onUpd
     const [bonusState, setBonusState] = useState<BonusRoundInfo | undefined>(data.bonus_round);
     const [submitting, setSubmitting] = useState(false);
     const [feedback, setFeedback] = useState<{ message: string; isCorrect: boolean } | null>(null);
+    const [showScrollIndicator, setShowScrollIndicator] = useState(false);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    const checkScrollable = () => {
+        if (scrollContainerRef.current) {
+            const { scrollHeight, clientHeight, scrollTop } = scrollContainerRef.current;
+            setShowScrollIndicator(scrollHeight > clientHeight && scrollHeight - scrollTop - clientHeight > 15);
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            const timeout = setTimeout(checkScrollable, 100);
+            window.addEventListener('resize', checkScrollable);
+            return () => {
+                clearTimeout(timeout);
+                window.removeEventListener('resize', checkScrollable);
+            };
+        }
+    }, [data, bonusState, isOpen]);
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        if (scrollHeight - scrollTop - clientHeight < 15) {
+            setShowScrollIndicator(false);
+        } else {
+            setShowScrollIndicator(true);
+        }
+    };
 
     // Update local state when data changes
     useEffect(() => {
@@ -290,8 +319,13 @@ export default function SuccessPopup({ isOpen, onClose, challengeId, data, onUpd
                 <div className="h-1 shrink-0 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-50"></div>
 
                 {/* Scrollable Body */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <div className="flex flex-col items-center text-center p-6 sm:p-8 sm:pb-4 pb-4">
+                <div className="flex-1 relative min-h-0">
+                    <div 
+                        ref={scrollContainerRef}
+                        className="h-full overflow-y-auto custom-scrollbar"
+                        onScroll={handleScroll}
+                    >
+                        <div className="flex flex-col items-center text-center p-6 sm:p-8 sm:pb-4 pb-4">
                         {/* Icon */}
                         <div className="mb-4 relative">
                             <div className="absolute inset-0 bg-primary blur-xl opacity-20"></div>
@@ -368,6 +402,17 @@ export default function SuccessPopup({ isOpen, onClose, challengeId, data, onUpd
                             <StreakMeter stats={data.streak_stats} />
                         </div>
                     </div>
+                    
+                    {/* Scroll Indicator Overlay */}
+                    {showScrollIndicator && (
+                        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0d121c]/90 via-[#0d121c]/40 to-transparent pointer-events-none flex items-end justify-center pb-4 transition-opacity duration-300">
+                            <div className="animate-bounce flex flex-col items-center text-cyan-400">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-90 drop-shadow-md shadow-black">More Points Below</span>
+                                <span className="material-symbols-outlined text-lg opacity-80 mt-1">keyboard_double_arrow_down</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
                 </div>
 
                 {/* Fixed Footer Actions */}
