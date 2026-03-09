@@ -318,106 +318,104 @@ export default function SuccessPopup({ isOpen, onClose, challengeId, data, onUpd
                 {/* Scanline */}
                 <div className="h-1 shrink-0 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-50"></div>
 
-                {/* Scrollable Body Wrapper */}
-                <div className="flex-1 min-h-0 relative">
-                    <div 
-                        ref={scrollContainerRef}
-                        className="absolute inset-0 overflow-y-auto custom-scrollbar"
-                        onScroll={handleScroll}
-                    >
-                        <div className="flex flex-col items-center text-center p-6 sm:p-8 sm:pb-4 pb-4">
-                            {/* Icon */}
-                            <div className="mb-4 relative">
-                                <div className="absolute inset-0 bg-primary blur-xl opacity-20"></div>
-                                <div className="w-14 h-14 rounded-full bg-primary/20 border border-primary/50 flex items-center justify-center relative z-10">
-                                    <span className="material-symbols-outlined text-cyan-400 text-3xl neon-glow">check_circle</span>
-                                </div>
-                            </div>
-
-                            <h1 className="text-white tracking-[0.15em] text-2xl sm:text-3xl font-bold leading-tight uppercase mb-1">
-                                Spot Confirmed
-                            </h1>
-                            <p className="text-cyan-400 text-[10px] font-bold tracking-[0.2em] uppercase mb-6 opacity-80">
-                                Vehicle Identified Successfully
-                            </p>
-
-                            {/* Feedback Toast */}
-                            {feedback && (
-                                <div className={`mb-4 px-4 py-2 rounded text-xs font-bold w-full border ${feedback.isCorrect ? 'bg-green-500/10 border-green-500/50 text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-400'}`}>
-                                    {feedback.message}
-                                </div>
-                            )}
-
-                            {/* Content Card */}
-                            <div className="w-full bg-[#192233]/40 rounded-xl overflow-hidden border border-white/5 mb-6">
-                                {/* Image */}
-                                <div
-                                    className="w-full h-40 bg-center bg-no-repeat bg-cover relative"
-                                    style={{ backgroundImage: `url(${data.image_url})` }}
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-t from-[#101622] via-transparent to-transparent"></div>
-                                </div>
-
-                                <div className="p-5 text-left">
-                                    <div className="flex flex-col mb-6">
-                                        <h3 className="text-white text-2xl font-bold tracking-tight">{data.make_name} {data.model_name}</h3>
-                                        <p className="text-primary font-bold text-[10px] uppercase tracking-widest mt-0.5">{data.model_known_for}</p>
-
-                                        {/* Score Display */}
-                                        <div className="mt-4 flex flex-col items-start score-display-bg py-2">
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-cyan-400 text-5xl font-black tracking-tighter neon-glow leading-none">+{data.points_earned || 1}</span>
-                                                <span className="text-cyan-400 text-xl font-black tracking-tighter neon-glow">POINT</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 mt-1 opacity-70">
-                                                <span className="material-symbols-outlined text-white text-xs">military_tech</span>
-                                                <p className="text-[10px] font-bold text-white uppercase tracking-[0.15em]">for Main Guess <span className="text-cyan-400">({data.attempts} Attempts)</span></p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Bonus Promo */}
-                                    {bonusState && (bonusState.year_range_enabled || bonusState.generation_enabled || bonusState.codename_enabled) && (
-                                        <>
-                                            <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 mb-5 flex items-center gap-3">
-                                                <span className="material-symbols-outlined text-cyan-400 text-xl shrink-0">add_circle</span>
-                                                <p className="text-[10px] text-white/90 leading-relaxed font-bold uppercase tracking-wider">
-                                                    <span className="text-cyan-400">MAXIMIZE YOUR SCORE:</span> Tackle bonus questions below to earn additional points!
-                                                </p>
-                                            </div>
-
-                                            {/* Specs Grid (Bonus Questions) */}
-                                            <div className="flex flex-col bg-[#0d121c] rounded-lg border border-white/5 overflow-hidden">
-                                                {renderBonusRow('year_range', 'Model Year', bonusState.year_range_points || 1, bonusState.year_range_enabled, bonusState.year_range_attempted, bonusState.year_range_correct)}
-                                                {renderBonusRow('generation', 'Generation', bonusState.generation_points || 1, bonusState.generation_enabled, bonusState.generation_attempted, bonusState.generation_correct)}
-                                                {renderBonusRow('codename', 'Codename', bonusState.codename_points || 1, bonusState.codename_enabled, bonusState.codename_attempted, bonusState.codename_correct)}
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Streak Meter */}
-                            <div className="w-full">
-                                <StreakMeter stats={data.streak_stats} />
+                {/* Scrollable Body */}
+                <div 
+                    ref={scrollContainerRef}
+                    className="flex-1 overflow-y-auto custom-scrollbar relative"
+                    onScroll={handleScroll}
+                >
+                    <div className="flex flex-col items-center text-center p-6 sm:p-8 sm:pb-4 pb-4">
+                        {/* Icon */}
+                        <div className="mb-4 relative">
+                            <div className="absolute inset-0 bg-primary blur-xl opacity-20"></div>
+                            <div className="w-14 h-14 rounded-full bg-primary/20 border border-primary/50 flex items-center justify-center relative z-10">
+                                <span className="material-symbols-outlined text-cyan-400 text-3xl neon-glow">check_circle</span>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Scroll Indicator Overlay */}
+                        <h1 className="text-white tracking-[0.15em] text-2xl sm:text-3xl font-bold leading-tight uppercase mb-1">
+                            Spot Confirmed
+                        </h1>
+                        <p className="text-cyan-400 text-[10px] font-bold tracking-[0.2em] uppercase mb-6 opacity-80">
+                            Vehicle Identified Successfully
+                        </p>
+
+                        {/* Feedback Toast */}
+                        {feedback && (
+                            <div className={`mb-4 px-4 py-2 rounded text-xs font-bold w-full border ${feedback.isCorrect ? 'bg-green-500/10 border-green-500/50 text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-400'}`}>
+                                {feedback.message}
+                            </div>
+                        )}
+
+                        {/* Content Card */}
+                        <div className="w-full bg-[#192233]/40 rounded-xl overflow-hidden border border-white/5 mb-6">
+                            {/* Image */}
+                            <div
+                                className="w-full h-40 bg-center bg-no-repeat bg-cover relative"
+                                style={{ backgroundImage: `url(${data.image_url})` }}
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#101622] via-transparent to-transparent"></div>
+                            </div>
+
+                            <div className="p-5 text-left">
+                                <div className="flex flex-col mb-6">
+                                    <h3 className="text-white text-2xl font-bold tracking-tight">{data.make_name} {data.model_name}</h3>
+                                    <p className="text-primary font-bold text-[10px] uppercase tracking-widest mt-0.5">{data.model_known_for}</p>
+
+                                    {/* Score Display */}
+                                    <div className="mt-4 flex flex-col items-start score-display-bg py-2">
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-cyan-400 text-5xl font-black tracking-tighter neon-glow leading-none">+{data.points_earned || 1}</span>
+                                            <span className="text-cyan-400 text-xl font-black tracking-tighter neon-glow">POINT</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-1 opacity-70">
+                                            <span className="material-symbols-outlined text-white text-xs">military_tech</span>
+                                            <p className="text-[10px] font-bold text-white uppercase tracking-[0.15em]">for Main Guess <span className="text-cyan-400">({data.attempts} Attempts)</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Bonus Promo */}
+                                {bonusState && (bonusState.year_range_enabled || bonusState.generation_enabled || bonusState.codename_enabled) && (
+                                    <>
+                                        <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 mb-5 flex items-center gap-3">
+                                            <span className="material-symbols-outlined text-cyan-400 text-xl shrink-0">add_circle</span>
+                                            <p className="text-[10px] text-white/90 leading-relaxed font-bold uppercase tracking-wider">
+                                                <span className="text-cyan-400">MAXIMIZE YOUR SCORE:</span> Tackle bonus questions below to earn additional points!
+                                            </p>
+                                        </div>
+
+                                        {/* Specs Grid (Bonus Questions) */}
+                                        <div className="flex flex-col bg-[#0d121c] rounded-lg border border-white/5 overflow-hidden">
+                                            {renderBonusRow('year_range', 'Model Year', bonusState.year_range_points || 1, bonusState.year_range_enabled, bonusState.year_range_attempted, bonusState.year_range_correct)}
+                                            {renderBonusRow('generation', 'Generation', bonusState.generation_points || 1, bonusState.generation_enabled, bonusState.generation_attempted, bonusState.generation_correct)}
+                                            {renderBonusRow('codename', 'Codename', bonusState.codename_points || 1, bonusState.codename_enabled, bonusState.codename_attempted, bonusState.codename_correct)}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Streak Meter */}
+                        <div className="w-full">
+                            <StreakMeter stats={data.streak_stats} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Fixed Footer Actions */}
+                <div className="p-6 sm:p-8 pt-4 sm:pt-4 bg-[#101622] border-t border-white/5 shrink-0 relative z-20">
+                    {/* Scroll Indicator Overlay - Anchored to top of footer */}
                     {showScrollIndicator && (
-                        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0d121c]/90 via-[#0d121c]/40 to-transparent pointer-events-none flex items-end justify-center pb-4 transition-opacity duration-300">
+                        <div className="absolute bottom-full left-0 right-0 h-24 bg-gradient-to-t from-[#101622] via-[#101622]/40 to-transparent pointer-events-none flex items-end justify-center pb-4 transition-opacity duration-300">
                             <div className="animate-bounce flex flex-col items-center text-cyan-400">
                                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-90 drop-shadow-md shadow-black">More Points Below</span>
                                 <span className="material-symbols-outlined text-lg opacity-80 mt-1">keyboard_double_arrow_down</span>
                             </div>
                         </div>
                     )}
-                </div>
 
-                {/* Fixed Footer Actions */}
-                <div className="p-6 sm:p-8 pt-4 sm:pt-4 bg-black/40 border-t border-white/5 shrink-0 relative z-10">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-6 relative z-10">
                         <button onClick={handleShare} className="flex items-center justify-center gap-2.5 h-12 bg-primary hover:bg-primary/90 text-white rounded-lg font-bold transition-all shadow-[0_4px_15px_rgba(13,91,236,0.3)] text-sm">
                             <span className="material-symbols-outlined text-xl">share</span>
                             SHARE RESULTS
