@@ -57,7 +57,7 @@ export ENV=$ENV_TYPE
 # Determine which .env file to use
 if [ "$ENV_TYPE" = "local" ]; then
     ENV_FILE="$PROJECT_ROOT/.env.local"
-else if [ "$ENV_TYPE" = "integration" ]; then
+elif [ "$ENV_TYPE" = "integration" ]; then
     ENV_FILE="$PROJECT_ROOT/.env.integration"
 else
     ENV_FILE="$PROJECT_ROOT/.env.production"
