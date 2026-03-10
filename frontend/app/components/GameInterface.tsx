@@ -191,6 +191,7 @@ export default function GameInterface() {
             if (data.id) {
                 fetchChallengeStats(data.id);
             }
+            console.table(data);
             if (data.user_status) {
                 setUserStatus(data.user_status);
                 if (data.user_status.is_completed) {
@@ -295,6 +296,7 @@ export default function GameInterface() {
 
             const data: SubmissionResult = await response.json();
             setResult(data);
+            console.table(data);
             console.log(`submission data. image = ${data.image_url}`)
             if (data.user_status) {
                 setUserStatus(data.user_status);
