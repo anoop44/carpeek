@@ -58,6 +58,10 @@ func GetSubscriptionStatusHandler(w http.ResponseWriter, r *http.Request) {
 		response.SubscriptionStatus = user.SubscriptionStatus
 	}
 
+	if user.SubscriptionProvider != nil {
+		response.SubscriptionProvider = user.SubscriptionProvider
+	}
+
 	if user.SubscriptionExpiresAt != nil {
 		formatted := user.SubscriptionExpiresAt.Format(time.RFC3339)
 		response.ExpiresAt = &formatted
@@ -145,7 +149,7 @@ func handleSubscriptionActive(db *sqlx.DB, event rcEvent) {
 		expiresAt = &t
 	}
 
-	err := database.UpdateUserSubscription(db, event.AppUserID, event.ProductID, "active", expiresAt)
+	err := database.UpdateUserSubscription(db, event.AppUserID, event.ProductID, "active", "revenuecat", expiresAt)
 	if err != nil {
 		utils.LogError("RCWebhook.ActivateSubscription", err)
 		return
@@ -154,7 +158,7 @@ func handleSubscriptionActive(db *sqlx.DB, event rcEvent) {
 	// Log event
 	user, err := database.GetUserByAnonymousID(db, event.AppUserID)
 	if err == nil {
-		database.LogSubscriptionEvent(db, user.ID, event.Type, event.ID,
+		database.LogSubscriptionEvent(db, user.ID, event.Type, "revenuecat", event.ID,
 			fmt.Sprintf("Product: %s, Period: %s", event.ProductID, event.PeriodType))
 	}
 
@@ -173,7 +177,7 @@ func handleSubscriptionCanceled(db *sqlx.DB, event rcEvent) {
 	}
 
 	// Keep is_subscriber = true (access until period end), but mark status as canceled
-	err := database.UpdateUserSubscription(db, event.AppUserID, event.ProductID, "canceled", expiresAt)
+	err := database.UpdateUserSubscription(db, event.AppUserID, event.ProductID, "canceled", "revenuecat", expiresAt)
 	if err != nil {
 		utils.LogError("RCWebhook.CancelSubscription", err)
 		return
@@ -190,7 +194,7 @@ func handleSubscriptionCanceled(db *sqlx.DB, event rcEvent) {
 
 	user, err := database.GetUserByAnonymousID(db, event.AppUserID)
 	if err == nil {
-		database.LogSubscriptionEvent(db, user.ID, "canceled", event.ID,
+		database.LogSubscriptionEvent(db, user.ID, "canceled", "revenuecat", event.ID,
 			fmt.Sprintf("Product: %s, Expires: %v", event.ProductID, expiresAt))
 	}
 
@@ -209,7 +213,7 @@ func handleSubscriptionExpired(db *sqlx.DB, event rcEvent) {
 
 	user, err := database.GetUserByAnonymousID(db, event.AppUserID)
 	if err == nil {
-		database.LogSubscriptionEvent(db, user.ID, "expired", event.ID,
+		database.LogSubscriptionEvent(db, user.ID, "expired", "revenuecat", event.ID,
 			fmt.Sprintf("Product: %s", event.ProductID))
 	}
 
@@ -225,7 +229,7 @@ func handleBillingIssue(db *sqlx.DB, event rcEvent) {
 		expiresAt = &t
 	}
 
-	err := database.UpdateUserSubscription(db, event.AppUserID, event.ProductID, "past_due", expiresAt)
+	err := database.UpdateUserSubscription(db, event.AppUserID, event.ProductID, "past_due", "revenuecat", expiresAt)
 	if err != nil {
 		utils.LogError("RCWebhook.BillingIssue", err)
 		return
@@ -233,7 +237,7 @@ func handleBillingIssue(db *sqlx.DB, event rcEvent) {
 
 	user, err := database.GetUserByAnonymousID(db, event.AppUserID)
 	if err == nil {
-		database.LogSubscriptionEvent(db, user.ID, "billing_issue", event.ID,
+		database.LogSubscriptionEvent(db, user.ID, "billing_issue", "revenuecat", event.ID,
 			fmt.Sprintf("Product: %s", event.ProductID))
 	}
 }

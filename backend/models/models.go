@@ -40,6 +40,7 @@ type User struct {
 	IsSubscriber          bool       `json:"is_subscriber" db:"is_subscriber"`
 	SubscriptionStatus    *string    `json:"subscription_status,omitempty" db:"subscription_status"`
 	SubscriptionProductID *string    `json:"subscription_product_id,omitempty" db:"subscription_product_id"`
+	SubscriptionProvider  *string    `json:"subscription_provider,omitempty" db:"subscription_provider"`
 	SubscriptionExpiresAt *time.Time `json:"subscription_expires_at,omitempty" db:"subscription_expires_at"`
 	CreatedAt             time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt             time.Time  `json:"updated_at" db:"updated_at"`
@@ -253,7 +254,14 @@ type ChallengeStats struct {
 
 // SubscriptionStatusResponse represents the subscription status for a user
 type SubscriptionStatusResponse struct {
-	IsSubscriber       bool    `json:"is_subscriber"`
-	SubscriptionStatus *string `json:"subscription_status,omitempty"`
-	ExpiresAt          *string `json:"expires_at,omitempty"`
+	IsSubscriber         bool    `json:"is_subscriber"`
+	SubscriptionStatus   *string `json:"subscription_status,omitempty"`
+	SubscriptionProvider *string `json:"subscription_provider,omitempty"`
+	ExpiresAt            *string `json:"expires_at,omitempty"`
+}
+
+// CreateRazorpaySubscriptionResponse represents the response when creating a Razorpay subscription
+type CreateRazorpaySubscriptionResponse struct {
+	SubscriptionID string `json:"subscription_id"`
+	KeyID          string `json:"key_id"` // Frontend needs this to open checkout
 }

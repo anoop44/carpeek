@@ -81,6 +81,9 @@ func SubmitChallengeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Format challenge image URL (obfuscated)
+	result.ImageURL = GetFullImageURL(result.ImageURL, challenge.ID)
+
 	// Format solution image URL if present
 	if result.Solution != nil && result.Solution.ImageURL != nil {
 		fullURL := GetModelImageURL(*result.Solution.ImageURL)

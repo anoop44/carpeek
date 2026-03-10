@@ -96,7 +96,7 @@ func GetFullImageURL(imagePath string, challengeID ...int) string {
 	}
 
 	if baseURL == "" {
-		return "/" + imagePath
+		return "/api/" + imagePath
 	}
 
 	return baseURL + imagePath

@@ -11,6 +11,7 @@ interface UserData {
     profile_picture_url?: string;
     is_subscriber?: boolean;
     subscription_status?: string;
+    subscription_provider?: string;
 }
 
 interface AuthContextType {
@@ -21,6 +22,7 @@ interface AuthContextType {
     userEmail: string | null;
     isLoading: boolean;
     customerInfo: CustomerInfo | null;
+    subscriptionProvider: string | null;
     login: (token: string, anonymousId?: string, email?: string) => void;
     logout: () => void;
     managedFetch: (url: string, options?: RequestInit) => Promise<Response>;
@@ -47,6 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [userEmail, setUserEmail] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+    const [subscriptionProvider, setSubscriptionProvider] = useState<string | null>(null);
     const [rcInitialized, setRcInitialized] = useState(false);
 
     const sessionTokenRef = useRef<string | null>(null);
@@ -106,6 +109,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
                 if (data.is_subscriber) {
                     setIsSubscriber(true);
+                }
+                if (data.subscription_provider) {
+                    setSubscriptionProvider(data.subscription_provider);
                 }
                 if (data.is_logged_in) {
                     setIsLoggedIn(true);
@@ -193,6 +199,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             userEmail,
             isLoading,
             customerInfo,
+            subscriptionProvider,
             login,
             logout,
             managedFetch

@@ -51,7 +51,11 @@ func NewRouter() http.Handler {
 
 	// Subscription
 	api.Handle("/subscription/status", mediumRate(auth(http.HandlerFunc(handlers.GetSubscriptionStatusHandler)))).Methods("GET")
-	api.Handle("/subscription/webhook", http.HandlerFunc(handlers.RevenueCatWebhookHandler)).Methods("POST")
+	api.Handle("/subscription/razorpay/create", lowRate(auth(http.HandlerFunc(handlers.CreateRazorpaySubscriptionHandler)))).Methods("POST")
+	
+	// Webhooks
+	api.Handle("/webhooks/revenuecat", http.HandlerFunc(handlers.RevenueCatWebhookHandler)).Methods("POST")
+	api.Handle("/webhooks/razorpay", http.HandlerFunc(handlers.RazorpayWebhookHandler)).Methods("POST")
 
 	// Static files (images)
 	// Apply global rate limit to images? Maybe not needed for static, but good practice if serving directly

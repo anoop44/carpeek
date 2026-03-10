@@ -28,7 +28,8 @@ type SessionResponse struct {
 	ExpiresIn    int    `json:"expires_in"` // seconds
 	UserID       string `json:"user_id"`
 	IsSubscriber bool   `json:"is_subscriber"`
-	IsLoggedIn   bool   `json:"is_logged_in"`
+	SubscriptionProvider *string `json:"subscription_provider,omitempty"`
+	IsLoggedIn           bool    `json:"is_logged_in"`
 }
 
 // GetSessionHandler handles the request to get a short-lived session token
@@ -62,6 +63,7 @@ func GetSessionHandler(w http.ResponseWriter, r *http.Request) {
 		ExpiresIn:    300, // 5 minutes
 		UserID:       user.AnonymousID,
 		IsSubscriber: user.IsSubscriber,
+		SubscriptionProvider: user.SubscriptionProvider,
 		IsLoggedIn:   user.IsLinked,
 	}
 

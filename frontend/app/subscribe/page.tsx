@@ -6,6 +6,8 @@ import { useAuth } from '../components/AuthProvider';
 import GoogleLoginButton from '../components/GoogleLoginButton';
 import { Purchases, Package } from '@revenuecat/purchases-js';
 import Link from 'next/link';
+import { isInIndia } from '../utils/region';
+import { loadRazorpay } from '../utils/razorpay';
 
 export default function SubscribePage() {
     const { isLoggedIn, isSubscriber, isLoading } = useAuth();
@@ -13,34 +15,47 @@ export default function SubscribePage() {
     const [fetchingOfferings, setFetchingOfferings] = useState(true);
     const [purchaseError, setPurchaseError] = useState<string | null>(null);
     const [isPurchasing, setIsPurchasing] = useState(false);
+    const [isIndianUser, setIsIndianUser] = useState<boolean | null>(null);
 
     useEffect(() => {
-        const fetchOfferings = async () => {
+        // Step 1: Detect Region
+        const inIndia = isInIndia();
+        setIsIndianUser(inIndia);
+
+        // Step 2: Fetch Offerings or Load Razorpay
+        const initialize = async () => {
             if (typeof window === 'undefined' || isLoading) return;
             
-            try {
-                setFetchingOfferings(true);
-                const offerings = await Purchases.getSharedInstance().getOfferings();
-                
-                if (offerings.current !== null && offerings.current.availablePackages.length > 0) {
-                    setPackages(offerings.current.availablePackages);
-                } else {
-                    console.log("No current offerings available in RevenueCat");
+            if (!inIndia) {
+                // International: Load RevenueCat
+                try {
+                    setFetchingOfferings(true);
+                    const offerings = await Purchases.getSharedInstance().getOfferings();
+                    
+                    if (offerings.current !== null && offerings.current.availablePackages.length > 0) {
+                        setPackages(offerings.current.availablePackages);
+                    } else {
+                        console.log("No current offerings available in RevenueCat");
+                    }
+                } catch (e) {
+                    console.error("Error fetching RC offerings", e);
+                    setPurchaseError("Failed to load subscription options.");
+                } finally {
+                    setFetchingOfferings(false);
                 }
-            } catch (e) {
-                console.error("Error fetching RC offerings", e);
-                setPurchaseError("Failed to load subscription options.");
-            } finally {
+            } else {
+                // India: Pre-load Razorpay script
+                await loadRazorpay();
                 setFetchingOfferings(false);
             }
         };
 
-        fetchOfferings();
+        initialize();
     }, [isLoading]);
 
-    const handlePurchase = async (pkg: Package) => {
+    const handleRCPurchase = async (pkg: Package) => {
         if (!isLoggedIn) {
-            setPurchaseError("Please sign in first to subscribe (so you don't lose your subscription if you clear your browser data).");
+            setPurchaseError("Please sign in first to subscribe.");
             return;
         }
 
@@ -52,10 +67,9 @@ export default function SubscribePage() {
             
             const entitlementId = process.env.NEXT_PUBLIC_REVENUECAT_ENTITLEMENT || 'ad_free';
             if (entitlementId in purchaseResult.customerInfo.entitlements.active) {
-                // Let the frontend react that the user is now a subscriber
-                window.location.href = '/settings'; // Redirect to settings or a success page
+                window.location.href = '/settings';
             } else {
-                 setPurchaseError("Purchase completed but subscription not activated. Please contact support.");
+                setPurchaseError("Purchase completed but subscription not activated. Please contact support.");
             }
 
         } catch (e: unknown) {
@@ -64,6 +78,64 @@ export default function SubscribePage() {
                 console.error("Purchase error", e);
                 setPurchaseError(error.message || "An error occurred during purchase.");
             }
+        } finally {
+            setIsPurchasing(false);
+        }
+    };
+
+    const handleRazorpayPurchase = async () => {
+        if (!isLoggedIn) {
+            setPurchaseError("Please sign in first to subscribe.");
+            return;
+        }
+
+        try {
+            setIsPurchasing(true);
+            setPurchaseError(null);
+            
+            // 1. Create Subscription in Backend
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/subscription/razorpay/create`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to initialize payment service.");
+            }
+
+            const { subscription_id, key_id } = await response.json();
+
+            // 2. Open Razorpay Checkout
+            const options = {
+                key: key_id,
+                subscription_id: subscription_id,
+                name: "AutoCorrect Pro",
+                description: "Monthly Ad-Free Subscription",
+                image: "/images/icon.png",
+                handler: function(response: any) {
+                    // Success! Razorpay takes care of it, we just redirect or show success
+                    window.location.href = '/settings?payment=success';
+                },
+                prefill: {
+                  email: JSON.parse(localStorage.getItem('user_info') || '{}').email || '',
+                },
+                theme: {
+                    color: "#0d5bec"
+                }
+            };
+
+            const rzp = new (window as any).Razorpay(options);
+            rzp.on('payment.failed', function (response: any) {
+                setPurchaseError(response.error.description || "Payment failed.");
+            });
+            rzp.open();
+
+        } catch (e: any) {
+            console.error("Razorpay error", e);
+            setPurchaseError(e.message || "Failed to start payment process.");
         } finally {
             setIsPurchasing(false);
         }
@@ -121,7 +193,7 @@ export default function SubscribePage() {
                                 Manage Subscription
                             </Link>
                         </div>
-                    ) : isLoading || fetchingOfferings ? (
+                    ) : isLoading || isIndianUser === null || fetchingOfferings ? (
                          <div className="py-12 flex flex-col items-center justify-center">
                              <div className="size-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
                              <p className="text-slate-400 uppercase tracking-widest text-xs font-bold">Loading plans...</p>
@@ -147,16 +219,48 @@ export default function SubscribePage() {
                                 </div>
                             )}
 
-                            {packages.length === 0 ? (
-                                <div className="text-slate-400 text-center py-6">
-                                    No subscription plans available right now.
+                            {isIndianUser ? (
+                                <div className="w-full flex flex-col gap-4">
+                                    <button
+                                        onClick={handleRazorpayPurchase}
+                                        disabled={isPurchasing}
+                                        className="w-full relative group overflow-hidden rounded-2xl border border-primary hover:border-accent-neon transition-colors"
+                                    >
+                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent group-hover:from-accent-neon/20 transition-colors"></div>
+                                        <div className="relative p-6 flex flex-col">
+                                            <div className="flex justify-between items-end mb-2">
+                                                 <h3 className="text-white font-bold text-lg">AutoCorrect Pro</h3>
+                                                 <p className="text-2xl font-bold text-white font-display">
+                                                     ₹99
+                                                     <span className="text-sm text-slate-400 font-sans ml-1 font-normal uppercase tracking-wider">
+                                                         / mo
+                                                     </span>
+                                                 </p>
+                                            </div>
+                                            <p className="text-slate-400 text-sm text-left">
+                                                Go ad-free with UPI Autopay. Standard monthly renewal.
+                                            </p>
+                                        </div>
+                                    </button>
+                                    
+                                    <div className="flex flex-wrap justify-center gap-4 mt-2 mb-2 opacity-60 grayscale hover:grayscale-0 transition-all text-white/50 text-[10px] uppercase tracking-tighter">
+                                        <span>UPI</span> • <span>Cards</span> • <span>Netbanking</span>
+                                    </div>
+
+                                    <p className="text-slate-500 text-xs text-center mt-2">
+                                        Cancel anytime. Secure payments processed by Razorpay.
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="w-full flex flex-col gap-4">
-                                    {packages.map((pkg) => (
+                                    {packages.length === 0 ? (
+                                        <div className="text-slate-400 text-center py-6">
+                                            No subscription plans available in your region.
+                                        </div>
+                                    ) : packages.map((pkg) => (
                                         <button
                                             key={pkg.identifier}
-                                            onClick={() => handlePurchase(pkg)}
+                                            onClick={() => handleRCPurchase(pkg)}
                                             disabled={isPurchasing}
                                             className="w-full relative group overflow-hidden rounded-2xl border border-primary hover:border-accent-neon transition-colors"
                                         >
@@ -167,7 +271,7 @@ export default function SubscribePage() {
                                                      <p className="text-2xl font-bold text-white font-display">
                                                          {pkg.rcBillingProduct.currentPrice.formattedPrice}
                                                          <span className="text-sm text-slate-400 font-sans ml-1 font-normal uppercase tracking-wider">
-                                                             / {pkg.rcBillingProduct.normalPeriodDuration === 'PT1M' ? 'year' : 'month'}
+                                                             / yr
                                                          </span>
                                                      </p>
                                                 </div>
@@ -179,7 +283,7 @@ export default function SubscribePage() {
                                     ))}
                                     
                                     <p className="text-slate-500 text-xs text-center mt-4">
-                                        Cancel anytime. Secure payments processed by Stripe.
+                                        Cancel anytime. Secure payments processed through Paddle.
                                     </p>
                                 </div>
                             )}

@@ -5,7 +5,7 @@ import AppHeader from '../components/AppHeader';
 import Link from 'next/link';
 
 export default function SettingsPage() {
-    const { isLoggedIn, isSubscriber, userEmail, customerInfo, isLoading, logout } = useAuth();
+    const { isLoggedIn, isSubscriber, userEmail, subscriptionProvider, customerInfo, isLoading, logout } = useAuth();
 
     return (
         <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden scanline bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
@@ -68,14 +68,18 @@ export default function SettingsPage() {
                                         <div className="size-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center">
                                             <span className="material-symbols-outlined">verified</span>
                                         </div>
-                                        <div>
-                                            <h3 className="text-white font-bold text-lg">Ad-Free Active</h3>
-                                            <p className="text-green-400/80 text-xs font-bold uppercase tracking-wider">Thank you for supporting AutoCorrect!</p>
+                                        <div className="flex-1">
+                                            <h3 className="text-white font-bold text-lg">AutoCorrect Pro</h3>
+                                            <p className="text-green-400/80 text-xs font-bold uppercase tracking-wider">Active via {subscriptionProvider === 'razorpay' ? 'Razorpay' : 'RevenueCat'}</p>
                                         </div>
                                     </div>
                                     
                                     <div className="mt-2 pt-4 border-t border-green-500/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        {customerInfo?.managementURL && (
+                                        {subscriptionProvider === 'razorpay' ? (
+                                            <p className="text-slate-400 text-xs">
+                                                To manage or cancel your subscription, please check your email from Razorpay or use the Razorpay mobile app/website.
+                                            </p>
+                                        ) : customerInfo?.managementURL ? (
                                             <a 
                                                 href={customerInfo.managementURL}
                                                 target="_blank"
@@ -84,9 +88,13 @@ export default function SettingsPage() {
                                             >
                                                 Manage Billing <span className="material-symbols-outlined text-[16px]">open_in_new</span>
                                             </a>
+                                        ) : (
+                                            <p className="text-slate-400 text-xs">
+                                                Manage your subscription via the Paddle/RevenueCat portal sent to your email.
+                                            </p>
                                         )}
-                                        <p className="text-slate-500 text-xs text-center md:text-left">
-                                            Manage payment methods and cancellations via the billing portal.
+                                        <p className="text-slate-500 text-xs text-center md:text-left md:max-w-[200px]">
+                                            Thank you for supporting AutoCorrect!
                                         </p>
                                     </div>
                                 </div>
