@@ -10,10 +10,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
 	"time"
 	_ "time/tzdata"
+
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 )
 
 // jsonError writes a JSON error response with the given message and HTTP status code.
@@ -64,15 +65,8 @@ func GetFullImageURL(imagePath string, challengeID ...int) string {
 
 	// If it's a challenge image and we have an ID, obfuscate the URL
 	if len(challengeID) > 0 {
-		baseURL := os.Getenv("BASE_URL")
-		if baseURL == "" {
-			// Frontend proxies /api/... to backend /api/v1/...
-			return fmt.Sprintf("/api/challenge/image/%d", challengeID[0])
-		}
-		if !strings.HasSuffix(baseURL, "/") {
-			baseURL += "/"
-		}
-		return fmt.Sprintf("%sapi/v1/challenge/image/%d", baseURL, challengeID[0])
+		// Frontend proxies /api/... to backend /api/v1/...
+		return fmt.Sprintf("/api/challenge/image/%d", challengeID[0])
 	}
 
 	// If it's already a full URL, return it
@@ -103,8 +97,8 @@ func GetFullImageURL(imagePath string, challengeID ...int) string {
 }
 
 const (
-	UserCookieName = "carpeek_uid"
-	UserHeaderName = "X-User-ID"
+	UserCookieName         = "carpeek_uid"
+	UserHeaderName         = "X-User-ID"
 	BrowserSignatureHeader = "X-Browser-Signature"
 )
 

@@ -58,7 +58,7 @@ interface SuccessPopupProps {
     managedFetch?: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
-export default function SuccessPopup({ isOpen, onClose, challengeId, data, onUpdatePoints, sessionToken, managedFetch }: SuccessPopupProps) {
+export default function SuccessPopup({ isOpen, onClose, challengeId, data, onUpdatePoints, managedFetch }: SuccessPopupProps) {
     const [secondsRemaining, setSecondsRemaining] = useState<number | null>(data.next_challenge_seconds || null);
     const [activeBonus, setActiveBonus] = useState<{ type: string; label: string; points: number } | null>(null);
     const [bonusState, setBonusState] = useState<BonusRoundInfo | undefined>(data.bonus_round);
@@ -76,6 +76,7 @@ export default function SuccessPopup({ isOpen, onClose, challengeId, data, onUpd
 
     useEffect(() => {
         if (isOpen) {
+            console.table(data);
             const timeout = setTimeout(checkScrollable, 100);
             window.addEventListener('resize', checkScrollable);
             return () => {
@@ -409,7 +410,6 @@ export default function SuccessPopup({ isOpen, onClose, challengeId, data, onUpd
                     {showScrollIndicator && (
                         <div className="absolute bottom-full left-0 right-0 h-24 bg-gradient-to-t from-[#101622] via-[#101622]/40 to-transparent pointer-events-none flex items-end justify-center pb-4 transition-opacity duration-300">
                             <div className="animate-bounce flex flex-col items-center text-cyan-400">
-                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-90 drop-shadow-md shadow-black">More Points Below</span>
                                 <span className="material-symbols-outlined text-lg opacity-80 mt-1">keyboard_double_arrow_down</span>
                             </div>
                         </div>
