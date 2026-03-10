@@ -76,7 +76,6 @@ export default function SuccessPopup({ isOpen, onClose, challengeId, data, onUpd
 
     useEffect(() => {
         if (isOpen) {
-            console.table(data);
             const timeout = setTimeout(checkScrollable, 100);
             window.addEventListener('resize', checkScrollable);
             return () => {
@@ -320,7 +319,7 @@ export default function SuccessPopup({ isOpen, onClose, challengeId, data, onUpd
                 <div className="h-1 shrink-0 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-50"></div>
 
                 {/* Scrollable Body */}
-                <div 
+                <div
                     ref={scrollContainerRef}
                     className="flex-1 overflow-y-auto custom-scrollbar relative"
                     onScroll={handleScroll}
@@ -351,10 +350,12 @@ export default function SuccessPopup({ isOpen, onClose, challengeId, data, onUpd
                         {/* Content Card */}
                         <div className="w-full bg-[#192233]/40 rounded-xl overflow-hidden border border-white/5 mb-6">
                             {/* Image */}
-                            <div
-                                className="w-full h-40 bg-center bg-no-repeat bg-cover relative"
-                                style={{ backgroundImage: `url(${data.image_url})` }}
-                            >
+                            <div className="w-full h-40 relative group overflow-hidden">
+                                <img
+                                    src={data.image_url}
+                                    alt={`${data.make_name} ${data.model_name}`}
+                                    className="w-full h-full object-cover object-center"
+                                />
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#101622] via-transparent to-transparent"></div>
                             </div>
 

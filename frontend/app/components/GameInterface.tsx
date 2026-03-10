@@ -186,12 +186,10 @@ export default function GameInterface() {
         try {
             const response = await managedFetch('/api/challenge/today');
             const data: Challenge = await response.json();
-            console.log('Fetched challenge: imageurl ', data.image_url);
             setChallenge(data);
             if (data.id) {
                 fetchChallengeStats(data.id);
             }
-            console.table(data);
             if (data.user_status) {
                 setUserStatus(data.user_status);
                 if (data.user_status.is_completed) {
