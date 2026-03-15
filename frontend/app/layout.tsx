@@ -12,6 +12,9 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: 'AutoCorrect | Daily Car Challenge',
   description: 'Identify the vehicle by its lighting signature. New challenge every day.',
+  other: {
+    'google-adsense-account': 'ca-pub-1318729232825951',
+  },
 }
 
 const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
